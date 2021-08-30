@@ -108,19 +108,13 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         /// </summary>
         public virtual void Abort()
         {
-            if (this.type == Type.WebHost)
+            if (this.type == Type.WebHost && this.webHost != null)
             {
-                if (this.webHost != null)
-                {
-                    this.webHost.Dispose();
-                }
+                this.webHost.Dispose();
             }
-            else
+            else if (this.type == Type.GenericHost && this.host != null)
             {
-                if (this.host != null)
-                {
-                    this.host.Dispose();
-                }
+                this.host.Dispose();
             }
         }
 
@@ -134,19 +128,13 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         /// </returns>
         public virtual Task CloseAsync(CancellationToken cancellationToken)
         {
-            if (this.type == Type.WebHost)
+            if (this.type == Type.WebHost && this.webHost != null)
             {
-                if (this.webHost != null)
-                {
-                    this.webHost.Dispose();
-                }
+                this.webHost.Dispose();
             }
-            else
+            else if (this.type == Type.GenericHost && this.host != null)
             {
-                if (this.host != null)
-                {
-                    this.host.Dispose();
-                }
+                this.host.Dispose();
             }
 
             return Task.FromResult(true);
