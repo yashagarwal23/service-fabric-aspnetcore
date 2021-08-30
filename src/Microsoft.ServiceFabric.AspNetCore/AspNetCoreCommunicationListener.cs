@@ -13,19 +13,31 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.AspNetCore.Hosting.Server.Features;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
+
+    public enum Type
+    {
+        WebHost,
+        GenericHost
+    }
 
     /// <summary>
     /// Base class for creating AspNetCore based communication listener for Service Fabric stateless or stateful service.
     /// </summary>
     public abstract class AspNetCoreCommunicationListener : ICommunicationListener
     {
-        private readonly Func<string, AspNetCoreCommunicationListener, IWebHost> build;
+        private readonly Func<string, AspNetCoreCommunicationListener, IWebHost> webHostBuild;
+        private readonly Func<string, AspNetCoreCommunicationListener, IHost> hostBuild;
         private readonly ServiceContext serviceContext;
         private IWebHost webHost;
+        private IHost host;
         private string urlSuffix = null;
         private bool configuredToUseUniqueServiceUrl = false;
+        private Type type;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AspNetCoreCommunicationListener"/> class.
@@ -45,9 +57,28 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 throw new ArgumentNullException("build");
             }
 
-            this.build = build;
+            this.webHostBuild = build;
             this.serviceContext = serviceContext;
             this.urlSuffix = string.Empty;
+            this.type = Type.WebHost;
+        }
+
+        public AspNetCoreCommunicationListener(ServiceContext serviceContext, Func<string, AspNetCoreCommunicationListener, IHost> build)
+        {
+            if (serviceContext == null)
+            {
+                throw new ArgumentNullException("serviceContext");
+            }
+
+            if (build == null)
+            {
+                throw new ArgumentNullException("build");
+            }
+
+            this.hostBuild = build;
+            this.serviceContext = serviceContext;
+            this.urlSuffix = string.Empty;
+            this.type = Type.GenericHost;
         }
 
         /// <summary>
@@ -77,9 +108,19 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         /// </summary>
         public virtual void Abort()
         {
-            if (this.webHost != null)
+            if (this.type == Type.WebHost)
             {
-                this.webHost.Dispose();
+                if (this.webHost != null)
+                {
+                    this.webHost.Dispose();
+                }
+            }
+            else
+            {
+                if (this.host != null)
+                {
+                    this.host.Dispose();
+                }
             }
         }
 
@@ -93,9 +134,19 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         /// </returns>
         public virtual Task CloseAsync(CancellationToken cancellationToken)
         {
-            if (this.webHost != null)
+            if (this.type == Type.WebHost)
             {
-                this.webHost.Dispose();
+                if (this.webHost != null)
+                {
+                    this.webHost.Dispose();
+                }
+            }
+            else
+            {
+                if (this.host != null)
+                {
+                    this.host.Dispose();
+                }
             }
 
             return Task.FromResult(true);
@@ -112,18 +163,36 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         /// </returns>
         public virtual Task<string> OpenAsync(CancellationToken cancellationToken)
         {
-            this.webHost = this.build(this.GetListenerUrl(), this);
-
-            if (this.webHost == null)
+            string url = null;
+            if (this.type == Type.WebHost)
             {
-                throw new InvalidOperationException(SR.WebHostNullExceptionMessage);
+                this.webHost = this.webHostBuild(this.GetListenerUrl(), this);
+
+                if (this.webHost == null)
+                {
+                    throw new InvalidOperationException(SR.WebHostNullExceptionMessage);
+                }
+
+                this.webHost.Start();
+
+                // AspNetCore 1.x returns http://+:port
+                // AspNetCore 2.0 returns http://[::]:port
+                url = this.webHost.ServerFeatures.Get<IServerAddressesFeature>().Addresses.FirstOrDefault();
             }
+            else
+            {
+                this.host = this.hostBuild(this.GetListenerUrl(), this);
 
-            this.webHost.Start();
+                if (this.host == null)
+                {
+                    throw new InvalidOperationException(SR.HostNullExceptionMessage);
+                }
 
-            // AspNetCore 1.x returns http://+:port
-            // AspNetCore 2.0 returns http://[::]:port
-            var url = this.webHost.ServerFeatures.Get<IServerAddressesFeature>().Addresses.FirstOrDefault();
+                this.host.Start();
+
+                var server = this.host.Services.GetRequiredService<IServer>();
+                url = server.Features.Get<IServerAddressesFeature>().Addresses.FirstOrDefault();
+            }
 
             if (url == null)
             {
