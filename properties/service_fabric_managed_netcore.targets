@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  
+  <!-- Target to build net core projects.-->
+  <ItemGroup>
+    <Projects_Prod_netcore Include="$(RepoRoot)src\netcore\Microsoft.ServiceFabric.AspNetCore\Microsoft.ServiceFabric.AspNetCore_netcore.csproj;
+                                  $(RepoRoot)src\netcore\Microsoft.ServiceFabric.AspNetCore.Configuration\Microsoft.ServiceFabric.AspNetCore.Configuration_netcore.csproj;
+                                  $(RepoRoot)src\netcore\Microsoft.ServiceFabric.AspNetCore.HttpSys\Microsoft.ServiceFabric.AspNetCore.HttpSys_netcore.csproj;
+                                  $(RepoRoot)src\netcore\Microsoft.ServiceFabric.AspNetCore.Kestrel\Microsoft.ServiceFabric.AspNetCore.Kestrel_netcore.csproj;" />
+  </ItemGroup>
+
+  <Target Name="RestoreProd_netcore">
+    <!-- Restores nuget packages and project specific tools -->
+    <MSBuild Projects ="@(Projects_Prod_netcore)" ContinueOnError ="false" Targets="restore" Properties="Verbosity=quiet"/>
+  </Target>
+  
+  <Target Name="BuildProd_netcore" DependsOnTargets="RestoreProd_netcore">
+    <MSBuild Projects ="@(Projects_Prod_netcore)" ContinueOnError ="false" Properties="Configuration=$(Configuration)" BuildInParallel="true"/>
+  </Target>
+
+  <Target Name="CleanProd_netcore" DependsOnTargets="RestoreProd_netcore">
+    <MSBuild Projects ="@(Projects_Prod_netcore)" ContinueOnError ="false" Targets="Clean" Properties="Configuration=$(Configuration)"/>
+  </Target>
+
+  <!-- Copy prod binaries for net core-->
+  <Target Name="CopyProdBinaries_netcore">
+    <ItemGroup>
+      <BinairesNetCore Include="src\netcore\Microsoft.ServiceFabric.AspNetCore\$(OutputPath)Microsoft.ServiceFabric.AspNetCore.*"/>
+      <BinairesNetCore Include="src\netcore\Microsoft.ServiceFabric.AspNetCore.Configuration\$(OutputPath)Microsoft.ServiceFabric.AspNetCore.Configuration.*"/>
+      <BinairesNetCore Include="src\netcore\Microsoft.ServiceFabric.AspNetCore.HttpSys\$(OutputPath)Microsoft.ServiceFabric.AspNetCore.HttpSys.*"/>
+      <BinairesNetCore Include="src\netcore\Microsoft.ServiceFabric.AspNetCore.Kestrel\$(OutputPath)Microsoft.ServiceFabric.AspNetCore.Kestrel.*"/>
+    </ItemGroup>
+
+    <Copy SourceFiles="@(BinairesNetCore)" DestinationFiles="@(BinairesNetCore->'$(DropFolderNetCore)\%(Destination)\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+</Project>

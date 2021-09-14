@@ -15,18 +15,6 @@
 
     <ItemGroup>
       <File Include="$(DropFolderNetFramework)\Microsoft.ServiceFabric.AspNetCore.Kestrel.dll">
-        <TargetPath>lib\net452</TargetPath>
-      </File>
-      <File Include="$(DropFolderNetFramework)\Microsoft.ServiceFabric.AspNetCore.Kestrel.xml">
-        <TargetPath>lib\net452</TargetPath>
-      </File>
-      <File Include="$(DropFolderNetFramework)\Microsoft.ServiceFabric.AspNetCore.Kestrel.dll">
-        <TargetPath>lib\net46</TargetPath>
-      </File>
-      <File Include="$(DropFolderNetFramework)\Microsoft.ServiceFabric.AspNetCore.Kestrel.xml">
-        <TargetPath>lib\net46</TargetPath>
-      </File>
-      <File Include="$(DropFolderNetFramework)\Microsoft.ServiceFabric.AspNetCore.Kestrel.dll">
         <TargetPath>lib\net461</TargetPath>
       </File>
       <File Include="$(DropFolderNetFramework)\Microsoft.ServiceFabric.AspNetCore.Kestrel.xml">
@@ -56,11 +44,11 @@
       <File Include="$(DropFolderNetFramework)\Microsoft.ServiceFabric.AspNetCore.Kestrel.xml">
         <TargetPath>lib\net472</TargetPath>
       </File>
-      <File Include="$(DropFolderNetStandard)Microsoft.ServiceFabric.AspNetCore.Kestrel.dll">
-        <TargetPath>lib\netstandard2.0</TargetPath>
+      <File Include="$(DropFolderNetCore)Microsoft.ServiceFabric.AspNetCore.Kestrel.dll">
+        <TargetPath>lib\netcoreapp3.1</TargetPath>
       </File>
-      <File Include="$(DropFolderNetStandard)Microsoft.ServiceFabric.AspNetCore.Kestrel.xml">
-        <TargetPath>lib\netstandard2.0</TargetPath>
+      <File Include="$(DropFolderNetCore)Microsoft.ServiceFabric.AspNetCore.Kestrel.xml">
+        <TargetPath>lib\netcoreapp3.1</TargetPath>
       </File>
       <File Include="$(DropFolderNetFramework)Microsoft.ServiceFabric.AspNetCore.Kestrel.dll">
         <TargetPath>runtimes\win\lib\net461</TargetPath>
@@ -81,9 +69,6 @@
     <ItemGroup>
       <Dependency Include="Microsoft.ServiceFabric.AspNetCore.Abstractions">
         <Version>[$(NuGetPackageVersion)]</Version>
-      </Dependency>
-      <Dependency Include="Microsoft.AspNetCore.Server.Kestrel">
-        <Version>1.0.0</Version>
       </Dependency>
     </ItemGroup>
   </Project>

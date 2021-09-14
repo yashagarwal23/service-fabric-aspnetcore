@@ -5,8 +5,7 @@
     <Projects_Prod_netframework Include="$(RepoRoot)src\Microsoft.ServiceFabric.AspNetCore\Microsoft.ServiceFabric.AspNetCore.csproj;
                                    $(RepoRoot)src\Microsoft.ServiceFabric.AspNetCore.Configuration\Microsoft.ServiceFabric.AspNetCore.Configuration.csproj;
                                    $(RepoRoot)src\Microsoft.ServiceFabric.AspNetCore.HttpSys\Microsoft.ServiceFabric.AspNetCore.HttpSys.csproj;
-                                   $(RepoRoot)src\Microsoft.ServiceFabric.AspNetCore.Kestrel\Microsoft.ServiceFabric.AspNetCore.Kestrel.csproj;
-                                   $(RepoRoot)src\Microsoft.ServiceFabric.AspNetCore.WebListener\Microsoft.ServiceFabric.AspNetCore.WebListener.csproj" />
+                                   $(RepoRoot)src\Microsoft.ServiceFabric.AspNetCore.Kestrel\Microsoft.ServiceFabric.AspNetCore.Kestrel.csproj;" />
     
     <Projects_Test_netframework Include="$(RepoRoot)test\unittests\Microsoft.ServiceFabric.AspNetCore.Tests\Microsoft.ServiceFabric.AspNetCore.Tests.csproj"  />
     
@@ -51,7 +50,6 @@
       <BinairesNetFramework Include="src\Microsoft.ServiceFabric.AspNetCore.Configuration\$(OutputPath)\Microsoft.ServiceFabric.AspNetCore.Configuration.*"/>
       <BinairesNetFramework Include="src\Microsoft.ServiceFabric.AspNetCore.Kestrel\$(OutputPath)\Microsoft.ServiceFabric.AspNetCore.Kestrel.*"/>
       <BinairesNetFramework Include="src\Microsoft.ServiceFabric.AspNetCore.HttpSys\$(OutputPath)\Microsoft.ServiceFabric.AspNetCore.HttpSys.*"/>
-      <BinairesNetFramework Include="src\Microsoft.ServiceFabric.AspNetCore.WebListener\$(OutputPath)\Microsoft.ServiceFabric.AspNetCore.WebListener.*"/>
     </ItemGroup>
     <Copy SourceFiles="@(BinairesNetFramework)" DestinationFiles="@(BinairesNetFramework->'$(DropFolderNetFramework)\%(Destination)\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>

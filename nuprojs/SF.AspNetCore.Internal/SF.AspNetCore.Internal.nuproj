@@ -17,8 +17,8 @@
       <File Include="$(DropFolderNetFramework)*.*">
         <TargetPath>lib\netframework</TargetPath>
       </File>
-      <File Include="$(DropFolderNetStandard)*.*">
-        <TargetPath>lib\netstandard</TargetPath>
+      <File Include="$(DropFolderNetCore)*.*">
+        <TargetPath>lib\netcore</TargetPath>
       </File>
       
     </ItemGroup>    

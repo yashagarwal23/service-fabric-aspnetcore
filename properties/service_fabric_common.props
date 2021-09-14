@@ -13,7 +13,7 @@
     <!-- Set Drop folders -->
     <DropFolder>$(RepoRoot)drop\$(Configuration)\</DropFolder>
     <DropFolderNetFramework>$(RepoRoot)drop\$(Configuration)\netframework\</DropFolderNetFramework>
-    <DropFolderNetStandard>$(RepoRoot)drop\$(Configuration)\netstandard\</DropFolderNetStandard>
+    <DropFolderNetCore>$(RepoRoot)drop\$(Configuration)\netcore\</DropFolderNetCore>
     <NugetPackageDropFolder>$(DropFolder)\packages</NugetPackageDropFolder>
     
     <!-- Set Nuget exe path -->

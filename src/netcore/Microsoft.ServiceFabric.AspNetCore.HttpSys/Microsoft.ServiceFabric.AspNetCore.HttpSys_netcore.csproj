@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\..\properties\service_fabric_managed_netstandard.props" />
+  <Import Project="..\..\..\properties\service_fabric_managed_netcore.props" />
   <Import Project="..\..\..\properties\service_fabric_managed_stylecop.props" />
   <PropertyGroup>
-    <AssemblyName>Microsoft.ServiceFabric.AspNetCore</AssemblyName>
     <RootNamespace>Microsoft.ServiceFabric.Services.Communication.AspNetCore</RootNamespace>
-    <SourceCodeDir>$(RepoRoot)src\Microsoft.ServiceFabric.AspNetCore\</SourceCodeDir>
+    <AssemblyName>Microsoft.ServiceFabric.AspNetCore.HttpSys</AssemblyName>
+    <SourceCodeDir>$(RepoRoot)src\Microsoft.ServiceFabric.AspNetCore.HttpSys\</SourceCodeDir>
     <DocumentationFile>$(OutputPath)\$(AssemblyName).xml</DocumentationFile>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
@@ -28,7 +28,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="1.0.0" />
-    <PackageReference Include="Microsoft.ServiceFabric.Services" Version="$(NugetPkg_Version_Microsoft_ServiceFabric_Services)" />
+    <PackageReference Include="Microsoft.ServiceFabric" Version="$(NugetPkg_Version_Microsoft_ServiceFabric)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.ServiceFabric.AspNetCore\Microsoft.ServiceFabric.AspNetCore_netcore.csproj" />
   </ItemGroup>  
 </Project>
