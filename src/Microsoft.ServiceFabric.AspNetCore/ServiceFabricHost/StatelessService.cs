@@ -17,6 +17,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Server.HttpSys;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Options;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
 
     public class StatelessService : Services.Runtime.StatelessService
@@ -38,7 +39,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             return new ServiceInstanceListener[]
                 {
                     new ServiceInstanceListener(serviceContext =>
-                        new CommonCommunicationListener(serviceContext, this.GetListenerUrl(), this.serviceProvider.GetService<HttpSysOptions>())),
+                        new CommonCommunicationListener(serviceContext, this.GetListenerUrl(), this.serviceProvider)),
                 };
         }
 
@@ -50,6 +51,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 "{0}://+:{1}",
                 serviceEndpoint.Protocol.ToString().ToLowerInvariant(),
                 serviceEndpoint.Port);
+
+            this.serviceProvider.GetService<IReplicaResolutionStrategy>().MapPort(serviceEndpoint.Port.ToString(), this.serviceContext.InstanceId.ToString());
 
             return listenUrl;
         }
@@ -74,35 +77,40 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     {
         private ServiceContext serviceContext;
         private string listenUrl;
-        private HttpSysOptions serverOptions;
+        private IServiceProvider serviceProvider;
 
-        public CommonCommunicationListener(ServiceContext serviceContext, string listenUrl, HttpSysOptions httpSysOptions)
+        public CommonCommunicationListener(ServiceContext serviceContext, string listenUrl, IServiceProvider serviceProvider)
         {
             this.serviceContext = serviceContext;
+            this.listenUrl = listenUrl;
 
-            var publishAddress = this.serviceContext.PublishAddress;
-            this.listenUrl = listenUrl.Replace("://+:", $"://{publishAddress}:");
-            this.serverOptions = httpSysOptions;
+            // this.listenUrl = listenUrl.Replace("://+:", $"://localhost:");
+            this.serviceProvider = serviceProvider;
         }
 
         public void Abort()
         {
-            var addresses = this.serverOptions.UrlPrefixes;
+            var serverOptions = this.serviceProvider.GetRequiredService<IOptions<HttpSysOptions>>().Value;
+            var addresses = serverOptions.UrlPrefixes;
             addresses.Remove(this.listenUrl);
         }
 
         public Task CloseAsync(CancellationToken cancellationToken)
         {
-            var addresses = this.serverOptions.UrlPrefixes;
+            var serverOptions = this.serviceProvider.GetRequiredService<IOptions<HttpSysOptions>>().Value;
+            var addresses = serverOptions.UrlPrefixes;
             addresses.Remove(this.listenUrl);
             return Task.CompletedTask;
         }
 
         public Task<string> OpenAsync(CancellationToken cancellationToken)
         {
-            var addresses = this.serverOptions.UrlPrefixes;
+            var serverOptions = this.serviceProvider.GetRequiredService<IOptions<HttpSysOptions>>().Value;
+            var addresses = serverOptions.UrlPrefixes;
             addresses.Add(this.listenUrl);
-            return Task.FromResult(this.listenUrl);
+
+            var publishAddress = this.serviceContext.PublishAddress;
+            return Task.FromResult(this.listenUrl.Replace("://+:", $"://{publishAddress}:"));
         }
     }
 }

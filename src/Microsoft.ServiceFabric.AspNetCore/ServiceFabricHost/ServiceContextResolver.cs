@@ -9,17 +9,18 @@
 namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Fabric;
 
     internal class ServiceContextResolver
     {
         private readonly IReplicaResolutionStrategy replicaResolver;
-        private Dictionary<string, object> store;
+        private IDictionary<string, object> store;
 
         public ServiceContextResolver(IReplicaResolutionStrategy replicaResolver)
         {
-            this.store = new Dictionary<string, object>();
+            this.store = new ConcurrentDictionary<string, object>();
             this.replicaResolver = replicaResolver;
         }
 

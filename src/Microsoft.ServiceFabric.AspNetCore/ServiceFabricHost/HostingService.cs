@@ -40,7 +40,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
     }
 }

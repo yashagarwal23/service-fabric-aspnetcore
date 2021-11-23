@@ -5,11 +5,17 @@
 namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
 
     internal interface IReplicaResolutionStrategy
     {
+        IDictionary<string, string> ReplicaStore { get; }
+
+        void MapPort(string port, string replicaId);
+
         Task<string> GetReplicaIdentifierAsync();
     }
 
@@ -20,11 +26,19 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         public ReplicaTenantResolutionStrategy(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
+            this.ReplicaStore = new ConcurrentDictionary<string, string>();
+        }
+
+        public IDictionary<string, string> ReplicaStore { get; }
+
+        public void MapPort(string port, string replicaId)
+        {
+            this.ReplicaStore.Add(port, replicaId);
         }
 
         public async Task<string> GetReplicaIdentifierAsync()
         {
-            return await Task.FromResult(this._httpContextAccessor.HttpContext.Request.Host.Port.ToString());
+            return await Task.FromResult(this.ReplicaStore[this._httpContextAccessor.HttpContext.Request.Host.Port.ToString()]);
         }
     }
 }
