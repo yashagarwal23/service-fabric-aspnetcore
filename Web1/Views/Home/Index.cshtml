@@ -1,0 +1,16 @@
+﻿@using System.Fabric
+@{
+    ViewData["Title"] = "Home Page";
+}
+@inject StatelessServiceContext serviceContext
+@inject IService service
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <p>Service Name: @serviceContext.ServiceName </p>
+    <p>Partition: @serviceContext.PartitionId </p>
+    <p>InstanceId: @serviceContext.InstanceId </p>
+    <p>PrintService: @service.Print() </p>
+
+</div>
