@@ -31,8 +31,10 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     {
                         builder.ConfigureServices(services =>
                         {
-                            var included = new HashSet<Type>(services.Select(i => i.ServiceType));
-                            foreach (var descriptor in parentServices.Where(i => !included.Contains(i.ServiceType)))
+                            var ignored = new HashSet<Type>(services.Select(i => i.ServiceType));
+                            ignored.Add(typeof(IHostedService));
+
+                            foreach (var descriptor in parentServices.Where(i => !ignored.Contains(i.ServiceType)))
                             {
                                 switch (descriptor.Lifetime)
                                 {

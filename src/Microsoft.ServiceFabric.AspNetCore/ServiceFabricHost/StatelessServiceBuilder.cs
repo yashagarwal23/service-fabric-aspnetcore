@@ -11,7 +11,6 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System;
     using System.Collections.Generic;
     using System.Fabric;
-    using System.Fabric.Description;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
@@ -22,6 +21,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         private List<Func<StatelessServiceContext, IServiceProvider, ICommunicationListener>> listenerDelegateList = new List<Func<StatelessServiceContext, IServiceProvider, ICommunicationListener>>();
         private List<string> listenerNameList = new List<string>();
         private StatelessServiceContext serviceContext;
+        private Type serviceType;
 
         public StatelessServiceBuilder(StatelessServiceContext serviceContext)
         {
@@ -41,12 +41,18 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             return this;
         }
 
-        public EndpointResourceDescription GetEndpointResourceDescription(string endpointName)
+        public StatelessServiceBuilder UseServiceImplementation(Type serviceType)
         {
-            return this.serviceContext.GetEndpointResourceDescription(endpointName);
+            if (typeof(WebStatelessService).IsAssignableFrom(serviceType) == false)
+            {
+                throw new Exception();
+            }
+
+            this.serviceType = serviceType;
+            return this;
         }
 
-        internal Microsoft.ServiceFabric.Services.Runtime.StatelessService Build(StatelessServiceContext serviceContext)
+        internal StatelessService Build(StatelessServiceContext serviceContext)
         {
             this.ConfigureServices(services =>
             {
@@ -54,19 +60,39 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 services.AddSingleton<StatelessServiceContext>(serviceContext);
             });
 
+            if (this.serviceType != null)
+            {
+                this.ConfigureServices(services =>
+                {
+                    services.AddSingleton(this.serviceType);
+                    services.AddSingleton(provider => (StatelessService)provider.GetRequiredService(this.serviceType));
+                    services.AddSingleton(provider => (WebStatelessService)provider.GetRequiredService(this.serviceType));
+                });
+            }
+            else
+            {
+                this.ConfigureServices(services =>
+                {
+                    services.AddSingleton(new WebStatelessService(serviceContext));
+                    services.AddSingleton(provider => (StatelessService)provider.GetRequiredService(typeof(WebStatelessService)));
+                });
+            }
+
             var host = this.Build();
 
-            // this.Properties.Add("Host", host);
-            var serviceInstanceListenerList = new List<ServiceInstanceListener>();
+            var serviceInstanceListeners = new List<ServiceInstanceListener>();
             for (int i = 0; i < this.listenerDelegateList.Count; i++)
             {
                 var listener = this.listenerDelegateList[i].Invoke(serviceContext, host.Services);
-                serviceInstanceListenerList.Add(new ServiceInstanceListener(
+                serviceInstanceListeners.Add(new ServiceInstanceListener(
                     _ => listener,
                     this.listenerNameList[i]));
             }
 
-            return new StatelessService(serviceContext, serviceInstanceListenerList);
+            var webStatelessService = host.Services.GetRequiredService<WebStatelessService>();
+            webStatelessService.ConfigureListeners(serviceInstanceListeners);
+
+            return webStatelessService;
         }
     }
 }

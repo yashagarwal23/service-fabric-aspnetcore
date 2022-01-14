@@ -26,7 +26,9 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
         internal void ConfigureDefaults(string[] args)
         {
-            bool GetReloadConfigOnChangeValue(HostBuilderContext hostingContext) => hostingContext.Configuration.GetValue("hostBuilder:reloadConfigOnChange", defaultValue: true);
+#if NET6_0
+            this.ConfigureDefaults(args);
+#else
 
             this.UseContentRoot(Directory.GetCurrentDirectory());
             this.ConfigureHostConfiguration(config =>
@@ -37,20 +39,22 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     config.AddCommandLine(args);
                 }
             });
+
             this.ConfigureAppConfiguration((hostingContext, config) =>
             {
                 IHostEnvironment env = hostingContext.HostingEnvironment;
-                bool reloadOnChange = GetReloadConfigOnChangeValue(hostingContext);
+
+                bool reloadOnChange = hostingContext.Configuration.GetValue("hostBuilder:reloadConfigOnChange", defaultValue: true);
 
                 config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: reloadOnChange)
-                        .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: reloadOnChange);
+                      .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: reloadOnChange);
 
-                if (env.IsDevelopment() && env.ApplicationName != null)
+                if (env.IsDevelopment() && !string.IsNullOrEmpty(env.ApplicationName))
                 {
                     var appAssembly = Assembly.Load(new AssemblyName(env.ApplicationName));
                     if (appAssembly != null)
                     {
-                        config.AddUserSecrets(appAssembly, optional: true, reloadOnChange: reloadOnChange);
+                        config.AddUserSecrets(appAssembly, optional: true);
                     }
                 }
 
@@ -63,12 +67,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             })
             .ConfigureLogging((hostingContext, logging) =>
             {
-                bool isWindows =
-#if NET6_0_OR_GREATER
-                    OperatingSystem.IsWindows();
-#else
-                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-#endif
+                bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
                 // IMPORTANT: This needs to be added *before* configuration is loaded, this lets
                 // the defaults be overridden by the configuration.
@@ -79,13 +78,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 }
 
                 logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
-#if NET6_0_OR_GREATER
-                if (!OperatingSystem.IsBrowser())
-#endif
-                {
-                    logging.AddConsole();
-                }
-
+                logging.AddConsole();
                 logging.AddDebug();
                 logging.AddEventSourceLogger();
 
@@ -94,14 +87,14 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     // Add the EventLogLoggerProvider on windows machines
                     logging.AddEventLog();
                 }
-
-                /* logging.Configure(options =>
+#if NET5_0
+                logging.Configure(options =>
                 {
-                    options.ActivityTrackingOptions =
-                        ActivityTrackingOptions.SpanId |
-                        ActivityTrackingOptions.TraceId |
-                        ActivityTrackingOptions.ParentId;
-                });*/
+                    options.ActivityTrackingOptions = ActivityTrackingOptions.SpanId
+                                                        | ActivityTrackingOptions.TraceId
+                                                        | ActivityTrackingOptions.ParentId;
+                });
+#endif
             })
             .UseDefaultServiceProvider((context, options) =>
             {
@@ -109,7 +102,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 options.ValidateScopes = isDevelopment;
                 options.ValidateOnBuild = isDevelopment;
             });
-        }
+#endif
+            }
     }
 }
 

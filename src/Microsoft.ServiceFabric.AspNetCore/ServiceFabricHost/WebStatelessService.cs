@@ -11,25 +11,24 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System;
     using System.Collections.Generic;
     using System.Fabric;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-    using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
+    using Microsoft.ServiceFabric.Services.Runtime;
 
-    public class StatelessService : Microsoft.ServiceFabric.Services.Runtime.StatelessService
+    public class WebStatelessService : StatelessService
     {
-        private readonly StatelessServiceContext serviceContext;
         private List<ServiceInstanceListener> serviceListeners;
 
-        public StatelessService(StatelessServiceContext serviceContext, List<ServiceInstanceListener> serviceListeners)
+        public WebStatelessService(StatelessServiceContext serviceContext)
             : base(serviceContext)
         {
-            this.serviceContext = serviceContext;
+        }
+
+        internal void ConfigureListeners(List<ServiceInstanceListener> serviceListeners)
+        {
             this.serviceListeners = serviceListeners;
         }
 
-        protected override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
+        protected sealed override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
         {
             return this.serviceListeners;
         }
