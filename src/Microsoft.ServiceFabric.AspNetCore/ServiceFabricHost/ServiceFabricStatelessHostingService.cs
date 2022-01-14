@@ -35,7 +35,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 this.serviceType,
                 serviceContext =>
                 {
-                    StatelessServiceBuilder builder = new StatelessServiceBuilder();
+                    StatelessServiceBuilder builder = new StatelessServiceBuilder(serviceContext);
                     this.configureBuilder(builder);
                     return builder.Build(serviceContext);
                 });

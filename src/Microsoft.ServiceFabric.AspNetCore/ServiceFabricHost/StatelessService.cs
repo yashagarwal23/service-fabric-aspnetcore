@@ -14,15 +14,18 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
 
     public class StatelessService : Microsoft.ServiceFabric.Services.Runtime.StatelessService
     {
+        private readonly StatelessServiceContext serviceContext;
         private List<ServiceInstanceListener> serviceListeners;
 
         public StatelessService(StatelessServiceContext serviceContext, List<ServiceInstanceListener> serviceListeners)
             : base(serviceContext)
         {
+            this.serviceContext = serviceContext;
             this.serviceListeners = serviceListeners;
         }
 

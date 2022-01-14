@@ -9,6 +9,7 @@
 namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
+    using System.Collections.Generic;
     using System.Fabric;
     using System.Linq;
     using System.Threading;
@@ -21,14 +22,14 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
     public class WebCommunicationListener : ICommunicationListener
     {
-        private readonly IHostBuilder hostBuilder;
         private readonly ServiceContext serviceContext;
+        private readonly IServiceProvider serviceProvider;
         private IHost host;
 
-        public WebCommunicationListener(IHostBuilder hostBuilder, ServiceContext serviceContext)
+        public WebCommunicationListener(ServiceContext serviceContext, IServiceProvider serviceProvider)
         {
-            this.hostBuilder = hostBuilder;
             this.serviceContext = serviceContext;
+            this.serviceProvider = serviceProvider;
         }
 
         public void Abort()
@@ -50,12 +51,11 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
         public async Task<string> OpenAsync(CancellationToken cancellationToken)
         {
-            if (!this.hostBuilder.Properties.TryGetValue("Host", out var obj))
+            this.host = this.serviceProvider.GetService<IHost>();
+            if (this.host == null)
             {
                 throw new InvalidOperationException(SR.HostNullExceptionMessage);
             }
-
-            this.host = (IHost)obj;
 
             await this.host.StartAsync(cancellationToken);
 
@@ -65,25 +65,29 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 throw new InvalidOperationException(SR.WebServerNotFound);
             }
 
-            // TODO return all endpoints
-            var url = server.Features.Get<IServerAddressesFeature>().Addresses.FirstOrDefault();
-            if (url == null)
+            var urls = server.Features.Get<IServerAddressesFeature>().Addresses;
+            if (urls == null)
             {
                 throw new InvalidOperationException(SR.ErrorNoUrlFromAspNetCore);
             }
 
             var publishAddress = this.serviceContext.PublishAddress;
 
-            if (url.Contains("://+:"))
+            var completeUrls = urls.Select(url =>
             {
-                url = url.Replace("://+:", $"://{publishAddress}:");
-            }
-            else if (url.Contains("://[::]:"))
-            {
-                url = url.Replace("://[::]:", $"://{publishAddress}:");
-            }
+                if (url.Contains("://+:"))
+                {
+                    return url.Replace("://+:", $"://{publishAddress}:");
+                }
+                else if (url.Contains("://[::]:"))
+                {
+                    return url.Replace("://[::]:", $"://{publishAddress}:");
+                }
 
-            return url;
+                return url;
+            });
+
+            return string.Join(";", completeUrls);
         }
     }
 }

@@ -16,7 +16,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
     public static class ServiceContextExtensions
     {
-        public static string GetEndpointResourceDescription(this ServiceContext serviceContext, string endpointName)
+        public static EndpointResourceDescription GetEndpointResourceDescription(this ServiceContext serviceContext, string endpointName)
         {
             if (endpointName == null)
             {
@@ -28,13 +28,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 throw new InvalidOperationException(string.Format(SR.EndpointNameNotFoundExceptionMessage, endpointName));
             }
 
-            var serviceEndpoint = serviceContext.CodePackageActivationContext.GetEndpoint(endpointName);
-
-            return string.Format(
-                CultureInfo.InvariantCulture,
-                "{0}://+:{1}",
-                serviceEndpoint.Protocol.ToString().ToLowerInvariant(),
-                serviceEndpoint.Port);
+            return serviceContext.CodePackageActivationContext.GetEndpoint(endpointName);
         }
     }
 }

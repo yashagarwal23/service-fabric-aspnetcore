@@ -11,6 +11,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System;
     using System.Collections.Generic;
     using System.Fabric;
+    using System.Fabric.Description;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
@@ -18,44 +19,35 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
     public class StatelessServiceBuilder : ServiceBuilder
     {
-        private string serviceType;
-        private IServiceCollection services;
-        private IServiceProvider provider;
-        private List<Func<StatelessServiceContext, HostBuilder, ICommunicationListener>> listenerDelegateList = new List<Func<StatelessServiceContext, HostBuilder, ICommunicationListener>>();
+        private List<Func<StatelessServiceContext, IServiceProvider, ICommunicationListener>> listenerDelegateList = new List<Func<StatelessServiceContext, IServiceProvider, ICommunicationListener>>();
         private List<string> listenerNameList = new List<string>();
+        private StatelessServiceContext serviceContext;
 
-        public StatelessServiceBuilder(string serviceType, IServiceCollection services, IServiceProvider provider)
+        public StatelessServiceBuilder(StatelessServiceContext serviceContext)
         {
-            this.serviceType = serviceType;
-            this.services = services;
-            this.provider = provider;
-
+            this.serviceContext = serviceContext;
             this.ConfigureDefaults();
         }
 
-        public StatelessServiceBuilder()
+        public StatelessServiceContext ServiceContext
         {
-            this.ConfigureDefaults();
+            get { return this.serviceContext; }
         }
 
-        public StatelessServiceBuilder ConfigureListener(Func<StatelessServiceContext, HostBuilder, ICommunicationListener> listenerDelegate, string listenerName = "")
+        public StatelessServiceBuilder ConfigureListener(Func<StatelessServiceContext, IServiceProvider, ICommunicationListener> listenerDelegate, string listenerName = "")
         {
             this.listenerDelegateList.Add(listenerDelegate);
             this.listenerNameList.Add(listenerName);
             return this;
         }
 
+        public EndpointResourceDescription GetEndpointResourceDescription(string endpointName)
+        {
+            return this.serviceContext.GetEndpointResourceDescription(endpointName);
+        }
+
         internal Microsoft.ServiceFabric.Services.Runtime.StatelessService Build(StatelessServiceContext serviceContext)
         {
-            var serviceInstanceListenerList = new List<ServiceInstanceListener>();
-            for (int i = 0; i < this.listenerDelegateList.Count; i++)
-            {
-                var listener = this.listenerDelegateList[i].Invoke(serviceContext, this);
-                serviceInstanceListenerList.Add(new ServiceInstanceListener(
-                    _ => listener,
-                    this.listenerNameList[i]));
-            }
-
             this.ConfigureServices(services =>
             {
                 services.AddSingleton<ServiceContext>(serviceContext);
@@ -63,7 +55,16 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             });
 
             var host = this.Build();
-            this.Properties.Add("Host", host);
+
+            // this.Properties.Add("Host", host);
+            var serviceInstanceListenerList = new List<ServiceInstanceListener>();
+            for (int i = 0; i < this.listenerDelegateList.Count; i++)
+            {
+                var listener = this.listenerDelegateList[i].Invoke(serviceContext, host.Services);
+                serviceInstanceListenerList.Add(new ServiceInstanceListener(
+                    _ => listener,
+                    this.listenerNameList[i]));
+            }
 
             return new StatelessService(serviceContext, serviceInstanceListenerList);
         }

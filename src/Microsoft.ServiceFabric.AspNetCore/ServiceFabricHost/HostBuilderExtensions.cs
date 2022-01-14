@@ -27,10 +27,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             {
                 parentServices.AddSingleton<IHostedService>(parentProvider =>
                 {
-                    Action<StatelessServiceBuilder> builderConfiguration = (builder) =>
+                    Action<StatelessServiceBuilder> globalServiceConfiguration = (builder) =>
                     {
-                        configureBuilder(builder);
-
                         builder.ConfigureServices(services =>
                         {
                             var included = new HashSet<Type>(services.Select(i => i.ServiceType));
@@ -54,14 +52,15 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                         });
                     };
 
+                    Action<StatelessServiceBuilder> builderConfiguration = (builder) =>
+                    {
+                        configureBuilder(builder);
+                        globalServiceConfiguration(builder);
+                    };
+
                     return new ServiceFabricStatelessHostingService(serviceType, builderConfiguration);
                 });
             });
-        }
-
-        public static ICommunicationListener CreateWebCommunicationListener(this IHostBuilder hostBuilder, ServiceContext serviceContext)
-        {
-            return new WebCommunicationListener(hostBuilder, serviceContext);
         }
     }
 }
