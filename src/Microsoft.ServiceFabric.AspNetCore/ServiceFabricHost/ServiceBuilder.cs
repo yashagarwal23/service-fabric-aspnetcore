@@ -26,7 +26,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
         internal void ConfigureDefaults(string[] args)
         {
-#if NET6_0
+#if NET6_0_OR_GREATER
             this.ConfigureDefaults(args);
 #else
 
