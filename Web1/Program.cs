@@ -23,20 +23,25 @@ namespace Web1
         private static void Main()
         {
             Host.CreateDefaultBuilder()
+                .ConfigureServices(services => services.AddSingleton<PrintService>())
                 .RegisterStatelessService("Web1Type", sfbuilder =>
                 {
                     sfbuilder.UseServiceImplementation(typeof(Web1));
 
                     var httpEndpoint = sfbuilder.ServiceContext.GetEndpointResourceDescription("Web1ServiceEndpoint");
                     var httpsEndpoint = sfbuilder.ServiceContext.GetEndpointResourceDescription("Web1ServiceEndpointHttps");
-                    var listenUrl = string.Format(CultureInfo.InvariantCulture, "{0}://+:{1}", httpEndpoint.Protocol.ToString().ToLowerInvariant(), httpEndpoint.Port);
-                    var listenUrl2 = string.Format(CultureInfo.InvariantCulture, "{0}://+:{1}", httpsEndpoint.Protocol.ToString().ToLowerInvariant(), httpsEndpoint.Port);
 
                     sfbuilder.ConfigureWebHostDefaults(webBuilder =>
                     {
-                        webBuilder.UseUrls(string.Join(";", listenUrl, listenUrl2));
                         webBuilder.UseStartup<Startup>();
-                        webBuilder.UseKestrel();
+                        webBuilder.UseKestrel(opt =>
+                        {
+                            opt.Listen(IPAddress.IPv6Any, httpsEndpoint.Port, listenOptions =>
+                            {
+                                listenOptions.UseHttps(FindMatchingCertificateBySubject("mytestcert"));
+                            });
+                            opt.Listen(IPAddress.IPv6Any, httpEndpoint.Port);
+                        });
                     });
 
                     sfbuilder.ConfigureListener(
@@ -69,7 +74,6 @@ namespace Web1
                         return new WebCommunicationListener(context, provider);
                     });
                 })
-                .ConfigureServices(services => services.AddSingleton<PrintService>())
                 .Build()
                 .Run();
         }
@@ -78,25 +82,30 @@ namespace Web1
         /// Finds the ASP .NET Core HTTPS development certificate in development environment. Update this method to use the appropriate certificate for production environment.
         /// </summary>
         /// <returns>Returns the ASP .NET Core HTTPS development certificate</returns>
-        private static X509Certificate2 GetCertificateFromStore()
+        private static X509Certificate2 FindMatchingCertificateBySubject(string subjectCommonName)
         {
-            string aspNetCoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-            if (string.Equals(aspNetCoreEnvironment, "Development", StringComparison.OrdinalIgnoreCase))
+            using (var store = new X509Store(StoreName.My, StoreLocation.LocalMachine))
             {
-                const string aspNetHttpsOid = "1.3.6.1.4.1.311.84.1.1";
-                const string CNName = "CN=localhost";
-                using (X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine))
+                store.Open(OpenFlags.OpenExistingOnly | OpenFlags.ReadOnly);
+                var certCollection = store.Certificates;
+                var matchingCerts = new X509Certificate2Collection();
+
+                foreach (var enumeratedCert in certCollection)
                 {
-                    store.Open(OpenFlags.ReadOnly);
-                    var certCollection = store.Certificates;
-                    var currentCerts = certCollection.Find(X509FindType.FindByExtension, aspNetHttpsOid, true);
-                    currentCerts = currentCerts.Find(X509FindType.FindByIssuerDistinguishedName, CNName, true);
-                    return currentCerts.Count == 0 ? null : currentCerts[0];
+                    if (StringComparer.OrdinalIgnoreCase.Equals(subjectCommonName, enumeratedCert.GetNameInfo(X509NameType.SimpleName, forIssuer: false))
+                      && DateTime.Now < enumeratedCert.NotAfter
+                      && DateTime.Now >= enumeratedCert.NotBefore)
+                    {
+                        matchingCerts.Add(enumeratedCert);
+                    }
                 }
-            }
-            else
-            {
-                throw new NotImplementedException("GetCertificateFromStore should be updated to retrieve the certificate for non Development environment");
+
+                if (matchingCerts.Count == 0)
+                {
+                    throw new Exception($"Could not find a match for a certificate with subject 'CN={subjectCommonName}'.");
+                }
+
+                return matchingCerts[0];
             }
         }
     }

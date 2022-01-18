@@ -35,7 +35,7 @@
            replicas of different partitions that are placed in your code. -->
       <Endpoint Name="ServiceEndpointV2" />
       <Endpoint Protocol="http" Name="Web1ServiceEndpoint" Type="Input" Port="9023" />
-      <Endpoint Protocol="http" Name="Web1ServiceEndpointHttps" Type="Input" Port="8340" />
+      <Endpoint Protocol="https" Name="Web1ServiceEndpointHttps" Type="Input" Port="8340" />
       <Endpoint Protocol="http" Name="Web2ServiceEndpoint" Type="Input" Port="8690" />
     </Endpoints>
   </Resources>
