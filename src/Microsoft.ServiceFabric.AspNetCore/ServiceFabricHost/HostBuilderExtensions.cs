@@ -21,46 +21,64 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
     public static class HostBuilderExtensions
     {
+        private static Action<IServiceCollection, IServiceProvider, ServiceBuilder> globalServiceConfiguration =
+            (parentServices, parentProvider, builder) =>
+            {
+                builder.ConfigureServices(services =>
+                {
+                    var ignored = new HashSet<Type>(services.Select(i => i.ServiceType));
+                    ignored.Add(typeof(IHostedService));
+
+                    foreach (var descriptor in parentServices.Where(i => !ignored.Contains(i.ServiceType)))
+                    {
+                        switch (descriptor.Lifetime)
+                        {
+                            case ServiceLifetime.Scoped:
+                            case ServiceLifetime.Transient:
+                                services.Add(descriptor);
+                                break;
+                            case ServiceLifetime.Singleton:
+                                if (!descriptor.ServiceType.ContainsGenericParameters)
+                                {
+                                    services.AddSingleton(descriptor.ServiceType, _ => parentProvider.GetService(descriptor.ServiceType));
+                                }
+
+                                break;
+                        }
+                    }
+                });
+            };
+
         public static IHostBuilder RegisterStatelessService(this IHostBuilder hostBuilder, string serviceType, Action<StatelessServiceBuilder> configureBuilder)
         {
-            return hostBuilder.ConfigureServices(parentServices =>
+            return hostBuilder.ConfigureServices(services =>
             {
-                parentServices.AddSingleton<IHostedService>(parentProvider =>
+                services.AddSingleton<IHostedService>(provider =>
                 {
-                    Action<StatelessServiceBuilder> globalServiceConfiguration = (builder) =>
-                    {
-                        builder.ConfigureServices(services =>
-                        {
-                            var ignored = new HashSet<Type>(services.Select(i => i.ServiceType));
-                            ignored.Add(typeof(IHostedService));
-
-                            foreach (var descriptor in parentServices.Where(i => !ignored.Contains(i.ServiceType)))
-                            {
-                                switch (descriptor.Lifetime)
-                                {
-                                    case ServiceLifetime.Scoped:
-                                    case ServiceLifetime.Transient:
-                                        services.Add(descriptor);
-                                        break;
-                                    case ServiceLifetime.Singleton:
-                                        if (!descriptor.ServiceType.ContainsGenericParameters)
-                                        {
-                                            services.AddSingleton(descriptor.ServiceType, _ => parentProvider.GetService(descriptor.ServiceType));
-                                        }
-
-                                        break;
-                                }
-                            }
-                        });
-                    };
-
                     Action<StatelessServiceBuilder> builderConfiguration = (builder) =>
                     {
                         configureBuilder(builder);
-                        globalServiceConfiguration(builder);
+                        globalServiceConfiguration(services, provider, builder);
                     };
 
                     return new ServiceFabricStatelessHostingService(serviceType, builderConfiguration);
+                });
+            });
+        }
+
+        public static IHostBuilder RegisterStatefulService(this IHostBuilder hostBuilder, string serviceType, Action<StatefulServiceBuilder> configureBuilder)
+        {
+            return hostBuilder.ConfigureServices(services =>
+            {
+                services.AddSingleton<IHostedService>(provider =>
+                {
+                    Action<StatefulServiceBuilder> builderConfiguration = (builder) =>
+                    {
+                        configureBuilder(builder);
+                        globalServiceConfiguration(services, provider, builder);
+                    };
+
+                    return new ServiceFabricStatefulHostingService(serviceType, builderConfiguration);
                 });
             });
         }
