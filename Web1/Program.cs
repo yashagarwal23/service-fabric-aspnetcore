@@ -24,9 +24,8 @@ namespace Web1
         {
             Host.CreateDefaultBuilder()
                 .ConfigureServices(services => services.AddSingleton<PrintService>())
-                .RegisterStatelessService("Web1Type", sfbuilder =>
+                .RegisterStatelessService<Web1>("Web1Type", sfbuilder =>
                 {
-                    sfbuilder.UseServiceImplementation(typeof(Web1));
 
                     var httpEndpoint = sfbuilder.ServiceContext.GetEndpointResourceDescription("Web1ServiceEndpoint");
                     var httpsEndpoint = sfbuilder.ServiceContext.GetEndpointResourceDescription("Web1ServiceEndpointHttps");
@@ -42,14 +41,7 @@ namespace Web1
                             });
                             opt.Listen(IPAddress.IPv6Any, httpEndpoint.Port);
                         });
-                    });
-
-                    sfbuilder.ConfigureListener(
-                        (context, provider) =>
-                        {
-                            return new WebCommunicationListener(context, provider);
-                        },
-                        "WebListener")
+                    })
                     .ConfigureListener(
                         (context, provider) =>
                         {
@@ -68,11 +60,17 @@ namespace Web1
                         webBuilder.UseStartup<Startup>();
                         webBuilder.UseKestrel();
                     });
-
-                    sfbuilder.ConfigureListener((context, provider) =>
-                    {
-                        return new WebCommunicationListener(context, provider);
-                    });
+                })
+                .RegisterStatefulService("Web3Type", sfbuilder =>
+                {
+                    sfbuilder.ConfigureWebHostDefaults(
+                        webBuilder =>
+                        {
+                            webBuilder.UseStartup<Startup>();
+                            webBuilder.UseKestrel();
+                            webBuilder.UseUrls("http://+:0");
+                        },
+                        listenOnSecondary: true);
                 })
                 .Build()
                 .Run();

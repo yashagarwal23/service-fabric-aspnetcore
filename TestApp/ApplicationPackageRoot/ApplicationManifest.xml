@@ -5,6 +5,10 @@
     <Parameter Name="Web2_ASPNETCORE_ENVIRONMENT" DefaultValue="" />
     <Parameter Name="Web1_InstanceCount" DefaultValue="-1" />
     <Parameter Name="Web1_ASPNETCORE_ENVIRONMENT" DefaultValue="" />
+    <Parameter Name="Web3_MinReplicaSetSize" DefaultValue="3" />
+    <Parameter Name="Web3_PartitionCount" DefaultValue="1" />
+    <Parameter Name="Web3_TargetReplicaSetSize" DefaultValue="3" />
+    <Parameter Name="Web3_ASPNETCORE_ENVIRONMENT" DefaultValue="" />
   </Parameters>
   <!-- Import the ServiceManifest from the ServicePackage. The ServiceManifestName and ServiceManifestVersion 
        should match the Name and Version attributes of the ServiceManifest element defined in the 
@@ -31,6 +35,11 @@
       <StatelessService ServiceTypeName="Web1Type" InstanceCount="[Web1_InstanceCount]">
         <SingletonPartition />
       </StatelessService>
+    </Service>
+    <Service Name="Web3">
+      <StatefulService ServiceTypeName="Web3Type" TargetReplicaSetSize="[Web3_TargetReplicaSetSize]" MinReplicaSetSize="[Web3_MinReplicaSetSize]">
+        <UniformInt64Partition PartitionCount="[Web3_PartitionCount]" LowKey="-9223372036854775808" HighKey="9223372036854775807" />
+      </StatefulService>
     </Service>
   </DefaultServices>
 </ApplicationManifest>

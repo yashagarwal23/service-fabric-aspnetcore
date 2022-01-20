@@ -13,9 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Microsoft.ServiceFabric.AspNetCore.Configuration\Microsoft.ServiceFabric.AspNetCore.Configuration.csproj" />
-    <ProjectReference Include="..\src\Microsoft.ServiceFabric.AspNetCore.HttpSys\Microsoft.ServiceFabric.AspNetCore.HttpSys.csproj" />
-    <ProjectReference Include="..\src\Microsoft.ServiceFabric.AspNetCore.Kestrel\Microsoft.ServiceFabric.AspNetCore.Kestrel.csproj" />
     <ProjectReference Include="..\src\Microsoft.ServiceFabric.AspNetCore\Microsoft.ServiceFabric.AspNetCore.csproj" />
   </ItemGroup>
 

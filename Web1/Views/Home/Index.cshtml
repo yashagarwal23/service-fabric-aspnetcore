@@ -1,6 +1,6 @@
 ﻿@using System.Fabric
 @inject PrintService service
-@inject StatelessServiceContext serviceContext
+@inject ServiceContext serviceContext
 
 @{
     ViewData["Title"] = "Home Page";
@@ -11,6 +11,6 @@
     <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
     <p>Service Name: @serviceContext.ServiceName </p>
     <p>Partition: @serviceContext.PartitionId </p>
-    <p>InstanceId: @serviceContext.InstanceId </p>
+    <p>InstanceId: @serviceContext.ReplicaOrInstanceId </p>
     <p>PrintService: @service.GetNum() </p>
 </div>

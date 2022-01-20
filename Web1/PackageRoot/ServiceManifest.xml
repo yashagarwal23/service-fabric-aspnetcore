@@ -9,6 +9,7 @@
          This name must match the string used in RegisterServiceType call in Program.cs. -->
     <StatelessServiceType ServiceTypeName="Web1Type" />
     <StatelessServiceType ServiceTypeName="Web2Type" />
+    <StatefulServiceType ServiceTypeName="Web3Type" HasPersistedState="true"/>
   </ServiceTypes>
 
   <!-- Code package is your service executable. -->

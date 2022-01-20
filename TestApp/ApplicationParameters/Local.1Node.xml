@@ -5,5 +5,9 @@
     <Parameter Name="Web2_ASPNETCORE_ENVIRONMENT" Value="Development" />
     <Parameter Name="Web1_InstanceCount" Value="1" />
     <Parameter Name="Web1_ASPNETCORE_ENVIRONMENT" Value="Development" />
+    <Parameter Name="Web3_MinReplicaSetSize" Value="1" />
+    <Parameter Name="Web3_PartitionCount" Value="1" />
+    <Parameter Name="Web3_TargetReplicaSetSize" Value="1" />
+    <Parameter Name="Web3_ASPNETCORE_ENVIRONMENT" Value="Development" />
   </Parameters>
 </Application>
