@@ -24,42 +24,35 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     {
         private readonly ServiceContext serviceContext;
         private readonly IServiceProvider serviceProvider;
-        private IHost host;
+        private IEnumerable<IHostedService> hostedServices;
 
         public WebCommunicationListener(ServiceContext serviceContext, IServiceProvider serviceProvider)
         {
             this.serviceContext = serviceContext;
             this.serviceProvider = serviceProvider;
+            this.hostedServices = serviceProvider.GetService<IEnumerable<IHostedService>>();
         }
 
         public void Abort()
         {
-            if (this.host != null)
-            {
-                this.host.Dispose();
-            }
         }
 
         public async Task CloseAsync(CancellationToken cancellationToken)
         {
-            if (this.host != null)
+            foreach (var hostedService in this.hostedServices)
             {
-                await this.host.StopAsync(cancellationToken);
-                this.host.Dispose();
+                await hostedService.StopAsync(cancellationToken);
             }
         }
 
         public async Task<string> OpenAsync(CancellationToken cancellationToken)
         {
-            this.host = this.serviceProvider.GetService<IHost>();
-            if (this.host == null)
+            foreach (var hostedService in this.hostedServices)
             {
-                throw new InvalidOperationException(SR.HostNullExceptionMessage);
+                await hostedService.StartAsync(cancellationToken);
             }
 
-            await this.host.StartAsync(cancellationToken);
-
-            var server = this.host.Services.GetService<IServer>();
+            var server = this.serviceProvider.GetService<IServer>();
             if (server == null)
             {
                 throw new InvalidOperationException(SR.WebServerNotFound);

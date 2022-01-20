@@ -11,11 +11,15 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System;
     using System.Collections.Generic;
     using System.Fabric;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
     using Microsoft.ServiceFabric.Services.Runtime;
 
     public class WebStatelessService : StatelessService
     {
+        // private IHost host;
         private List<ServiceInstanceListener> serviceListeners;
 
         public WebStatelessService(StatelessServiceContext serviceContext)
@@ -23,10 +27,28 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         {
         }
 
+        /* internal void ConfigureHost(IHost host)
+        {
+            this.host = host;
+        }*/
+
         internal void ConfigureListeners(List<ServiceInstanceListener> serviceListeners)
         {
             this.serviceListeners = serviceListeners;
         }
+
+        /*protected override async Task OnOpenAsync(CancellationToken cancellationToken)
+        {
+            await base.OnOpenAsync(cancellationToken);
+            await this.host.StartAsync(cancellationToken);
+        }
+
+        protected override async Task OnCloseAsync(CancellationToken cancellationToken)
+        {
+            await base.OnCloseAsync(cancellationToken);
+            await this.host.StopAsync(cancellationToken);
+            this.host.Dispose();
+        }*/
 
         protected sealed override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
         {

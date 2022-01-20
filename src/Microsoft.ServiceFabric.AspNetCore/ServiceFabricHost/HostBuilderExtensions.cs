@@ -66,6 +66,25 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             });
         }
 
+        public static IHostBuilder RegisterStatelessService<TService>(this IHostBuilder hostBuilder, string serviceType, Action<StatelessServiceBuilder> configureBuilder)
+            where TService : WebStatelessService
+        {
+            return hostBuilder.ConfigureServices(services =>
+            {
+                services.AddSingleton<IHostedService>(provider =>
+                {
+                    Action<StatelessServiceBuilder> builderConfiguration = (builder) =>
+                    {
+                        configureBuilder(builder);
+                        builder.UseServiceImplementation(typeof(TService));
+                        globalServiceConfiguration(services, provider, builder);
+                    };
+
+                    return new ServiceFabricStatelessHostingService(serviceType, builderConfiguration);
+                });
+            });
+        }
+
         public static IHostBuilder RegisterStatefulService(this IHostBuilder hostBuilder, string serviceType, Action<StatefulServiceBuilder> configureBuilder)
         {
             return hostBuilder.ConfigureServices(services =>
@@ -75,6 +94,25 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     Action<StatefulServiceBuilder> builderConfiguration = (builder) =>
                     {
                         configureBuilder(builder);
+                        globalServiceConfiguration(services, provider, builder);
+                    };
+
+                    return new ServiceFabricStatefulHostingService(serviceType, builderConfiguration);
+                });
+            });
+        }
+
+        public static IHostBuilder RegisterStatefulService<TService>(this IHostBuilder hostBuilder, string serviceType, Action<StatefulServiceBuilder> configureBuilder)
+            where TService : WebStatefulService
+        {
+            return hostBuilder.ConfigureServices(services =>
+            {
+                services.AddSingleton<IHostedService>(provider =>
+                {
+                    Action<StatefulServiceBuilder> builderConfiguration = (builder) =>
+                    {
+                        configureBuilder(builder);
+                        builder.UseServiceImplementation(typeof(TService));
                         globalServiceConfiguration(services, provider, builder);
                     };
 

@@ -11,7 +11,11 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System;
     using System.Collections.Generic;
     using System.Fabric;
+    using System.Linq;
+    using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Data;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
@@ -47,7 +51,31 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             return this;
         }
 
-        public StatefulServiceBuilder UseServiceImplementation(Type serviceType)
+        public StatefulServiceBuilder ConfigureWebHostDefaults(Action<IWebHostBuilder> configure, string listenerName = "WebListener", bool listenOnSecondary = false)
+        {
+            if (configure is null)
+            {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            ((HostBuilder)this).ConfigureWebHostDefaults(webBuilder =>
+            {
+                configure(webBuilder);
+                webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+            });
+
+            this.ConfigureListener(
+                (context, provider) =>
+                {
+                    return new WebCommunicationListener(context, provider);
+                },
+                listenerName,
+                listenOnSecondary);
+
+            return this;
+        }
+
+        internal StatefulServiceBuilder UseServiceImplementation(Type serviceType)
         {
             if (typeof(WebStatefulService).IsAssignableFrom(serviceType) == false)
             {
