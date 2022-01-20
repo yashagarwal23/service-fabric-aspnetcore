@@ -9,7 +9,6 @@
 namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
-    using System.Collections.Generic;
     using System.Fabric;
     using System.Linq;
     using System.Threading;
@@ -23,13 +22,13 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     public class WebCommunicationListener : ICommunicationListener
     {
         private readonly ServiceContext serviceContext;
-        private readonly IServiceProvider serviceProvider;
         private IHost host;
+        private Func<IHost> hostFactory;
 
-        public WebCommunicationListener(ServiceContext serviceContext, IServiceProvider serviceProvider)
+        public WebCommunicationListener(ServiceContext serviceContext, Func<IHost> hostFactory)
         {
             this.serviceContext = serviceContext;
-            this.serviceProvider = serviceProvider;
+            this.hostFactory = hostFactory;
         }
 
         public void Abort()
@@ -51,7 +50,11 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
         public async Task<string> OpenAsync(CancellationToken cancellationToken)
         {
-            this.host = this.serviceProvider.GetService<IHost>();
+            if (this.hostFactory != null)
+            {
+                this.host = this.hostFactory.Invoke();
+            }
+
             if (this.host == null)
             {
                 throw new InvalidOperationException(SR.HostNullExceptionMessage);

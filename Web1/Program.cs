@@ -42,14 +42,7 @@ namespace Web1
                             });
                             opt.Listen(IPAddress.IPv6Any, httpEndpoint.Port);
                         });
-                    });
-
-                    sfbuilder.ConfigureListener(
-                        (context, provider) =>
-                        {
-                            return new WebCommunicationListener(context, provider);
-                        },
-                        "WebListener")
+                    })
                     .ConfigureListener(
                         (context, provider) =>
                         {
@@ -67,11 +60,6 @@ namespace Web1
                         webBuilder.UseUrls(listenUrl);
                         webBuilder.UseStartup<Startup>();
                         webBuilder.UseKestrel();
-                    });
-
-                    sfbuilder.ConfigureListener((context, provider) =>
-                    {
-                        return new WebCommunicationListener(context, provider);
                     });
                 })
                 .Build()

@@ -11,6 +11,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System;
     using System.Collections.Generic;
     using System.Fabric;
+    using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Data;
@@ -55,6 +56,38 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             }
 
             this.serviceType = serviceType;
+            return this;
+        }
+
+        public StatefulServiceBuilder ConfigureWebHostDefaults(Action<IWebHostBuilder> configure, string listenerName = "WebListener", bool listenOnSecondary = false)
+        {
+            if (configure is null)
+            {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            this.ConfigureListener(
+                (context, provider) =>
+                {
+                    Func<IHost> factory = () =>
+                    {
+                        var hostBuilder = Host.CreateDefaultBuilder();
+                        hostBuilder.ConfigureWebHostDefaults(webBuilder =>
+                        {
+                            configure(webBuilder);
+                            webBuilder.ConfigureServices(services =>
+                            {
+                                services.AddSingleton<IStartupFilter>(new ServiceFabricHostStartupFilter(provider));
+                            });
+                        });
+                        return hostBuilder.Build();
+                    };
+
+                    return new WebCommunicationListener(context, factory);
+                },
+                listenerName,
+                listenOnSecondary);
+
             return this;
         }
 
