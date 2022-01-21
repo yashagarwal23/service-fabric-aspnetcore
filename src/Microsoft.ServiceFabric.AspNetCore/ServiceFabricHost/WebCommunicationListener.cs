@@ -24,13 +24,13 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     {
         private readonly ServiceContext serviceContext;
         private readonly IServiceProvider serviceProvider;
-        private IEnumerable<IHostedService> hostedServices;
+        private ServiceFabricGenericWebHostService serviceFabricGenericWebHostService;
 
         public WebCommunicationListener(ServiceContext serviceContext, IServiceProvider serviceProvider)
         {
             this.serviceContext = serviceContext;
             this.serviceProvider = serviceProvider;
-            this.hostedServices = serviceProvider.GetService<IEnumerable<IHostedService>>();
+            this.serviceFabricGenericWebHostService = serviceProvider.GetService<ServiceFabricGenericWebHostService>();
         }
 
         public void Abort()
@@ -39,18 +39,12 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
         public async Task CloseAsync(CancellationToken cancellationToken)
         {
-            foreach (var hostedService in this.hostedServices)
-            {
-                await hostedService.StopAsync(cancellationToken);
-            }
+            await this.serviceFabricGenericWebHostService.StopAsync(cancellationToken);
         }
 
         public async Task<string> OpenAsync(CancellationToken cancellationToken)
         {
-            foreach (var hostedService in this.hostedServices)
-            {
-                await hostedService.StartAsync(cancellationToken);
-            }
+            await this.serviceFabricGenericWebHostService.StartAsync(cancellationToken);
 
             var server = this.serviceProvider.GetService<IServer>();
             if (server == null)

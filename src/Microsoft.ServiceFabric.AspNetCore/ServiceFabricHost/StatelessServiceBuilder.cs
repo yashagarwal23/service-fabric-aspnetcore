@@ -11,6 +11,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System;
     using System.Collections.Generic;
     using System.Fabric;
+    using System.Linq;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.Extensions.DependencyInjection;
@@ -165,6 +166,18 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 });
             }
 
+            this.ConfigureServices(services =>
+            {
+                var descriptor = services.LastOrDefault(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType.Name == "GenericWebHostService");
+                services.Remove(descriptor);
+
+                services.AddSingleton(provider =>
+                {
+                    var impl = (IHostedService)ActivatorUtilities.CreateInstance(provider, descriptor.ImplementationType);
+                    return new ServiceFabricGenericWebHostService(impl);
+                });
+            });
+
             var host = this.Build();
 
             var serviceInstanceListeners = new List<ServiceInstanceListener>();
@@ -177,6 +190,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             }
 
             var webStatelessService = host.Services.GetRequiredService<WebStatelessService>();
+            webStatelessService.ConfigureHost(host);
             webStatelessService.ConfigureListeners(serviceInstanceListeners);
 
             return webStatelessService;
