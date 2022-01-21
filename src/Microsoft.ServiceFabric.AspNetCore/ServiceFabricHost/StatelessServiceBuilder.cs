@@ -43,7 +43,9 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             return this;
         }
 
-        public StatelessServiceBuilder ConfigureWebHostDefaults(Action<IWebHostBuilder> configure, string listenerName = "WebListener")
+        public StatelessServiceBuilder ConfigureWebHostDefaults(
+            Action<IWebHostBuilder> configure,
+            string listenerName = "")
         {
             if (configure is null)
             {
@@ -64,6 +66,67 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 listenerName);
             return this;
         }
+
+        public StatelessServiceBuilder ConfigureWebHost(
+            Action<IWebHostBuilder> configure,
+            string listenerName = "")
+        {
+            if (configure is null)
+            {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            ((HostBuilder)this).ConfigureWebHost(
+                webBuilder =>
+                {
+                    configure(webBuilder);
+                    webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                });
+
+            this.ConfigureListener(
+                (context, provider) =>
+                {
+                    return new WebCommunicationListener(context, provider);
+                },
+                listenerName);
+
+            return this;
+        }
+
+#if NET5_0_OR_GREATER
+        public StatelessServiceBuilder ConfigureWebHost(
+            Action<IWebHostBuilder> configure,
+            Action<WebHostBuilderOptions> configureWebHostBuilder,
+            string listenerName = "")
+        {
+            if (configure is null)
+            {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            if (configureWebHostBuilder is null)
+            {
+                throw new ArgumentNullException(nameof(configureWebHostBuilder));
+            }
+
+            ((HostBuilder)this).ConfigureWebHost(
+                webBuilder =>
+                {
+                    configure(webBuilder);
+                    webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                },
+                configureWebHostBuilder);
+
+            this.ConfigureListener(
+                (context, provider) =>
+                {
+                    return new WebCommunicationListener(context, provider);
+                },
+                listenerName);
+
+            return this;
+        }
+#endif
 
         internal StatelessServiceBuilder UseServiceImplementation(Type serviceType)
         {

@@ -11,11 +11,9 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System;
     using System.Collections.Generic;
     using System.Fabric;
-    using System.Linq;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Data;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
@@ -51,7 +49,10 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             return this;
         }
 
-        public StatefulServiceBuilder ConfigureWebHostDefaults(Action<IWebHostBuilder> configure, string listenerName = "WebListener", bool listenOnSecondary = false)
+        public StatefulServiceBuilder ConfigureWebHostDefaults(
+            Action<IWebHostBuilder> configure,
+            string listenerName = "",
+            bool listenOnSecondary = false)
         {
             if (configure is null)
             {
@@ -74,6 +75,71 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
             return this;
         }
+
+        public StatefulServiceBuilder ConfigureWebHost(
+            Action<IWebHostBuilder> configure,
+            string listenerName = "",
+            bool listenOnSecondary = false)
+        {
+            if (configure is null)
+            {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            ((HostBuilder)this).ConfigureWebHost(
+                webBuilder =>
+                {
+                    configure(webBuilder);
+                    webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                });
+
+            this.ConfigureListener(
+                (context, provider) =>
+                {
+                    return new WebCommunicationListener(context, provider);
+                },
+                listenerName,
+                listenOnSecondary);
+
+            return this;
+        }
+
+#if NET5_0_OR_GREATER
+        public StatefulServiceBuilder ConfigureWebHost(
+            Action<IWebHostBuilder> configure,
+            Action<WebHostBuilderOptions> configureWebHostBuilder,
+            string listenerName = "",
+            bool listenOnSecondary = false)
+        {
+            if (configure is null)
+            {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            if (configureWebHostBuilder is null)
+            {
+                throw new ArgumentNullException(nameof(configureWebHostBuilder));
+            }
+
+            ((HostBuilder)this).ConfigureWebHost(
+                webBuilder =>
+                {
+                    configure(webBuilder);
+                    webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                },
+                configureWebHostBuilder);
+
+            this.ConfigureListener(
+                (context, provider) =>
+                {
+                    return new WebCommunicationListener(context, provider);
+                },
+                listenerName,
+                listenOnSecondary);
+
+            return this;
+        }
+#endif
 
         internal StatefulServiceBuilder UseServiceImplementation(Type serviceType)
         {
