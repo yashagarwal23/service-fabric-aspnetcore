@@ -28,27 +28,44 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             this.serverType = server.GetType();
         }
 
-        public IFeatureCollection Features { get => this.server.Features; }
+        public IFeatureCollection Features
+        {
+            get
+            {
+                if (this.server == null)
+                {
+                    this.server = (IServer)ActivatorUtilities.CreateInstance(this.serviceProvider, this.serverType);
+                }
+
+                return this.server.Features;
+            }
+        }
 
         public void Dispose()
         {
             if (this.server != null)
             {
                 this.server.Dispose();
+                this.server = null;
             }
         }
 
-        public Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken cancellationToken)
+        public async Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken cancellationToken)
         {
-            return this.server.StartAsync<TContext>(application, cancellationToken);
+            if (this.server != null)
+            {
+                await this.server.StartAsync<TContext>(application, cancellationToken);
+            }
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            await this.server.StopAsync(cancellationToken);
-            this.server.Dispose();
-
-            this.server = (IServer)ActivatorUtilities.CreateInstance(this.serviceProvider, this.serverType);
+            if (this.server != null)
+            {
+                await this.server.StopAsync(cancellationToken);
+                this.server.Dispose();
+                this.server = null;
+            }
         }
     }
 }

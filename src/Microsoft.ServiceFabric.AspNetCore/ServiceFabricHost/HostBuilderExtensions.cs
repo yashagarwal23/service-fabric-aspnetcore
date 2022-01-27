@@ -21,8 +21,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
     public static class HostBuilderExtensions
     {
-        private static Action<IServiceCollection, IServiceProvider, ServiceBuilder> globalServiceConfiguration =
-            (parentServices, parentProvider, builder) =>
+        private static Action<ServiceBuilder, IServiceCollection, IServiceProvider> globalServiceConfiguration =
+            (builder, parentServices, parentProvider) =>
             {
                 builder.ConfigureServices(services =>
                 {
@@ -58,7 +58,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     Action<StatelessServiceBuilder> builderConfiguration = (builder) =>
                     {
                         configureBuilder(builder);
-                        globalServiceConfiguration(services, provider, builder);
+                        globalServiceConfiguration(builder, services, provider);
                     };
 
                     return new ServiceFabricStatelessHostingService(serviceType, builderConfiguration);
@@ -67,7 +67,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         }
 
         public static IHostBuilder RegisterStatelessService<TService>(this IHostBuilder hostBuilder, string serviceType, Action<StatelessServiceBuilder> configureBuilder)
-            where TService : WebStatelessService
+            where TService : AspNetStatelessService
         {
             return hostBuilder.ConfigureServices(services =>
             {
@@ -75,9 +75,9 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     Action<StatelessServiceBuilder> builderConfiguration = (builder) =>
                     {
-                        configureBuilder(builder);
                         builder.UseServiceImplementation(typeof(TService));
-                        globalServiceConfiguration(services, provider, builder);
+                        configureBuilder(builder);
+                        globalServiceConfiguration(builder, services, provider);
                     };
 
                     return new ServiceFabricStatelessHostingService(serviceType, builderConfiguration);
@@ -94,7 +94,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     Action<StatefulServiceBuilder> builderConfiguration = (builder) =>
                     {
                         configureBuilder(builder);
-                        globalServiceConfiguration(services, provider, builder);
+                        globalServiceConfiguration(builder, services, provider);
                     };
 
                     return new ServiceFabricStatefulHostingService(serviceType, builderConfiguration);
@@ -103,7 +103,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         }
 
         public static IHostBuilder RegisterStatefulService<TService>(this IHostBuilder hostBuilder, string serviceType, Action<StatefulServiceBuilder> configureBuilder)
-            where TService : WebStatefulService
+            where TService : AspNetStatefulService
         {
             return hostBuilder.ConfigureServices(services =>
             {
@@ -111,9 +111,9 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     Action<StatefulServiceBuilder> builderConfiguration = (builder) =>
                     {
-                        configureBuilder(builder);
                         builder.UseServiceImplementation(typeof(TService));
-                        globalServiceConfiguration(services, provider, builder);
+                        configureBuilder(builder);
+                        globalServiceConfiguration(builder, services, provider);
                     };
 
                     return new ServiceFabricStatefulHostingService(serviceType, builderConfiguration);

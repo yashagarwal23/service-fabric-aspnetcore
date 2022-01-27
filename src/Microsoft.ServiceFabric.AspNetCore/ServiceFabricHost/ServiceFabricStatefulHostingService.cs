@@ -33,7 +33,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     StatefulServiceBuilder builder = new StatefulServiceBuilder(serviceContext);
                     this.configureBuilder(builder);
-                    return builder.Build(serviceContext);
+                    return builder.BuildService();
                 });
             return Task.CompletedTask;
         }

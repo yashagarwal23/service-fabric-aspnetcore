@@ -17,12 +17,12 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
     using Microsoft.ServiceFabric.Services.Runtime;
 
-    public class WebStatefulService : StatefulService
+    public class AspNetStatelessService : StatelessService
     {
         private IHost host;
-        private List<ServiceReplicaListener> serviceListeners;
+        private List<ServiceInstanceListener> serviceListeners;
 
-        public WebStatefulService(StatefulServiceContext serviceContext)
+        public AspNetStatelessService(StatelessServiceContext serviceContext)
             : base(serviceContext)
         {
         }
@@ -32,25 +32,23 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             this.host = host;
         }
 
-        internal void ConfigureListeners(List<ServiceReplicaListener> serviceListeners)
+        internal void ConfigureListeners(List<ServiceInstanceListener> serviceListeners)
         {
             this.serviceListeners = serviceListeners;
         }
 
-        protected override async Task OnOpenAsync(ReplicaOpenMode openMode, CancellationToken cancellationToken)
+        protected override async Task OnOpenAsync(CancellationToken cancellationToken)
         {
-            await base.OnOpenAsync(openMode, cancellationToken);
             await this.host.StartAsync(cancellationToken);
         }
 
         protected override async Task OnCloseAsync(CancellationToken cancellationToken)
         {
-            await base.OnCloseAsync(cancellationToken);
             await this.host.StopAsync(cancellationToken);
             this.host.Dispose();
         }
 
-        protected sealed override IEnumerable<ServiceReplicaListener> CreateServiceReplicaListeners()
+        protected sealed override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
         {
             return this.serviceListeners;
         }
