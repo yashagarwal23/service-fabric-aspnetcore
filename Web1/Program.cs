@@ -42,12 +42,7 @@ namespace Web1
                             opt.Listen(IPAddress.IPv6Any, httpEndpoint.Port);
                         });
                     })
-                    .ConfigureListener(
-                        (context, provider) =>
-                        {
-                            return new FabricTransportServiceRemotingListener(context, provider.GetRequiredService<Web1>());
-                        },
-                        "V2Listener");
+                    .ConfigureV2RemotingDefaults();
                 })
                 .RegisterStatelessService("Web2Type", sfbuilder =>
                 {

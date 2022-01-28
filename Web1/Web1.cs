@@ -7,7 +7,7 @@ namespace Web1
     /// <summary>
     /// The FabricRuntime creates an instance of this class for each service type instance.
     /// </summary>
-    internal sealed class Web1 : WebStatelessService, ServiceRemotingInt
+    internal sealed class Web1 : AspNetStatelessService, ServiceRemotingInt
     {
         private PrintService printService;
 
