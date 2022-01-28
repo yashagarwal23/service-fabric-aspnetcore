@@ -10,14 +10,9 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
     using System.Collections.Generic;
-    using System.Fabric;
     using System.Linq;
-    using Microsoft.AspNetCore.Hosting;
-    using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
-    using Microsoft.ServiceFabric.Services.Communication.Runtime;
-    using Microsoft.ServiceFabric.Services.Runtime;
 
     public static class HostBuilderExtensions
     {
@@ -67,7 +62,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         }
 
         public static IHostBuilder RegisterStatelessService<TService>(this IHostBuilder hostBuilder, string serviceType, Action<StatelessServiceBuilder> configureBuilder)
-            where TService : WebStatelessService
+            where TService : AspNetStatelessService
         {
             return hostBuilder.ConfigureServices(services =>
             {
@@ -75,8 +70,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     Action<StatelessServiceBuilder> builderConfiguration = (builder) =>
                     {
-                        configureBuilder(builder);
                         builder.UseServiceImplementation(typeof(TService));
+                        configureBuilder(builder);
                         globalServiceConfiguration(services, provider, builder);
                     };
 
@@ -103,7 +98,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         }
 
         public static IHostBuilder RegisterStatefulService<TService>(this IHostBuilder hostBuilder, string serviceType, Action<StatefulServiceBuilder> configureBuilder)
-            where TService : WebStatefulService
+            where TService : AspNetStatefulService
         {
             return hostBuilder.ConfigureServices(services =>
             {
@@ -111,8 +106,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     Action<StatefulServiceBuilder> builderConfiguration = (builder) =>
                     {
-                        configureBuilder(builder);
                         builder.UseServiceImplementation(typeof(TService));
+                        configureBuilder(builder);
                         globalServiceConfiguration(services, provider, builder);
                     };
 

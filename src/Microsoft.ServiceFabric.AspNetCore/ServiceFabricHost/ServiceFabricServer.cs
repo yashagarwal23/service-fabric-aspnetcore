@@ -6,49 +6,93 @@
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 #pragma warning disable SA1600 // Elements should be documented
 
-namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
+namespace Microsoft.ServiceFabric.Services.Communication
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Hosting.Server;
+    using Microsoft.AspNetCore.Hosting.Server.Features;
     using Microsoft.AspNetCore.Http.Features;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.ServiceFabric.Services.Communication.AspNetCore;
 
     public class ServiceFabricServer : IServer
     {
+        private IServer serverImpl;
         private IServiceProvider serviceProvider;
-        private IServer server;
         private Type serverType;
 
-        public ServiceFabricServer(IServer server, IServiceProvider serviceProvider)
+        private object httpApplicationObj;
+        private Type contextType;
+
+        private ICollection<string> addresses = new List<string>();
+        private ServiceFabricServerFeatureCollection features;
+
+        public ServiceFabricServer(IServer serverImpl, IServiceProvider serviceProvider)
         {
+            this.serverImpl = serverImpl;
             this.serviceProvider = serviceProvider;
-            this.server = server;
-            this.serverType = server.GetType();
+            this.serverType = serverImpl.GetType();
+
+            this.features = new ServiceFabricServerFeatureCollection();
+            this.features.SetFeatures(this.serverImpl.Features);
         }
 
-        public IFeatureCollection Features { get => this.server.Features; }
+        public IFeatureCollection Features { get => this.features; }
+
+        public void Reset()
+        {
+            IServer newServer = (IServer)ActivatorUtilities.CreateInstance(this.serviceProvider, this.serverType);
+            foreach (var feature in this.Features)
+            {
+                newServer.Features.Set(feature);
+            }
+
+            if (this.addresses.Count > 0 && newServer.Features.Get<IServerAddressesFeature>().Addresses.Count == 0)
+            {
+                foreach (var address in this.addresses)
+                {
+                    newServer.Features.Get<IServerAddressesFeature>().Addresses.Add(address);
+                }
+            }
+
+            this.features.SetFeatures(newServer.Features);
+            this.serverImpl = newServer;
+        }
 
         public void Dispose()
         {
-            if (this.server != null)
-            {
-                this.server.Dispose();
-            }
+            this.serverImpl.Dispose();
         }
 
         public Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken cancellationToken)
         {
-            return this.server.StartAsync<TContext>(application, cancellationToken);
+            this.httpApplicationObj = application;
+            this.contextType = typeof(TContext);
+
+            foreach (var address in this.serverImpl.Features.Get<IServerAddressesFeature>().Addresses)
+            {
+                this.addresses.Add(address);
+            }
+
+            this.serverImpl.Features.Get<IServerAddressesFeature>().Addresses.Clear();
+
+            return Task.CompletedTask;
         }
 
-        public async Task StopAsync(CancellationToken cancellationToken)
+        public Task StopAsync(CancellationToken cancellationToken)
         {
-            await this.server.StopAsync(cancellationToken);
-            this.server.Dispose();
+            return this.serverImpl.StopAsync(cancellationToken);
+        }
 
-            this.server = (IServer)ActivatorUtilities.CreateInstance(this.serviceProvider, this.serverType);
+        internal Task StartAsync(CancellationToken cancellationToken)
+        {
+            return (Task)this.serverType
+                .GetMethod("StartAsync")
+                .MakeGenericMethod(this.contextType)
+                .Invoke(this.serverImpl, new object[] { this.httpApplicationObj, cancellationToken });
         }
     }
 }

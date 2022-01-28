@@ -9,101 +9,70 @@
 namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
-    using System.IO;
-    using System.Reflection;
-    using System.Runtime.InteropServices;
+    using System.Collections.Generic;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Logging.EventLog;
 
-    public class ServiceBuilder : HostBuilder
+    public class ServiceBuilder : IHostBuilder
     {
-        internal void ConfigureDefaults()
+#pragma warning disable SA1401 // Fields should be private
+        protected IHostBuilder hostBuilder;
+#pragma warning restore SA1401 // Fields should be private
+
+        internal ServiceBuilder()
         {
-            this.ConfigureDefaults(null);
+#if NET461
+            this.hostBuilder = new HostBuilder();
+#else
+            this.hostBuilder = Host.CreateDefaultBuilder();
+#endif
         }
 
-        internal void ConfigureDefaults(string[] args)
+        public IDictionary<object, object> Properties { get => this.hostBuilder.Properties; }
+
+        public IHost Build()
         {
-#if NET6_0_OR_GREATER
-            this.ConfigureDefaults(args);
-#else
+            throw new InvalidOperationException("Building StatelessServiceBuilder/StatefulServiceBuilder not allowed");
+        }
 
-            this.UseContentRoot(Directory.GetCurrentDirectory());
-            this.ConfigureHostConfiguration(config =>
-            {
-                config.AddEnvironmentVariables(prefix: "DOTNET_");
-                if (args != null)
-                {
-                    config.AddCommandLine(args);
-                }
-            });
+        public IHostBuilder ConfigureAppConfiguration(Action<HostBuilderContext, IConfigurationBuilder> configureDelegate)
+        {
+            this.hostBuilder.ConfigureAppConfiguration(configureDelegate);
+            return this;
+        }
 
-            this.ConfigureAppConfiguration((hostingContext, config) =>
-            {
-                IHostEnvironment env = hostingContext.HostingEnvironment;
+        public IHostBuilder ConfigureContainer<TContainerBuilder>(Action<HostBuilderContext, TContainerBuilder> configureDelegate)
+        {
+            this.hostBuilder.ConfigureContainer<TContainerBuilder>(configureDelegate);
+            return this;
+        }
 
-                bool reloadOnChange = hostingContext.Configuration.GetValue("hostBuilder:reloadConfigOnChange", defaultValue: true);
+        public IHostBuilder ConfigureHostConfiguration(Action<IConfigurationBuilder> configureDelegate)
+        {
+            this.hostBuilder.ConfigureHostConfiguration(configureDelegate);
+            return this;
+        }
 
-                config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: reloadOnChange)
-                      .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: reloadOnChange);
+        public IHostBuilder ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate)
+        {
+            this.hostBuilder.ConfigureServices(configureDelegate);
+            return this;
+        }
 
-                if (env.IsDevelopment() && !string.IsNullOrEmpty(env.ApplicationName))
-                {
-                    var appAssembly = Assembly.Load(new AssemblyName(env.ApplicationName));
-                    if (appAssembly != null)
-                    {
-                        config.AddUserSecrets(appAssembly, optional: true);
-                    }
-                }
+        public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory)
+        {
+            this.hostBuilder.UseServiceProviderFactory<TContainerBuilder>(factory);
+            return this;
+        }
 
-                config.AddEnvironmentVariables();
-
-                if (args != null)
-                {
-                    config.AddCommandLine(args);
-                }
-            })
-            .ConfigureLogging((hostingContext, logging) =>
-            {
-                bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
-                // IMPORTANT: This needs to be added *before* configuration is loaded, this lets
-                // the defaults be overridden by the configuration.
-                if (isWindows)
-                {
-                    // Default the EventLogLoggerProvider to warning or above
-                    logging.AddFilter<EventLogLoggerProvider>(level => level >= LogLevel.Warning);
-                }
-
-                logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
-                logging.AddConsole();
-                logging.AddDebug();
-                logging.AddEventSourceLogger();
-
-                if (isWindows)
-                {
-                    // Add the EventLogLoggerProvider on windows machines
-                    logging.AddEventLog();
-                }
-#if NET5_0
-                logging.Configure(options =>
-                {
-                    options.ActivityTrackingOptions = ActivityTrackingOptions.SpanId
-                                                        | ActivityTrackingOptions.TraceId
-                                                        | ActivityTrackingOptions.ParentId;
-                });
+#if !NET461
+        public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(Func<HostBuilderContext, IServiceProviderFactory<TContainerBuilder>> factory)
+        {
+            this.hostBuilder.UseServiceProviderFactory<TContainerBuilder>(factory);
+            return this;
+        }
 #endif
-            })
-            .UseDefaultServiceProvider((context, options) =>
-            {
-                bool isDevelopment = context.HostingEnvironment.IsDevelopment();
-                options.ValidateScopes = isDevelopment;
-                options.ValidateOnBuild = isDevelopment;
-            });
-#endif
-            }
     }
 }
 

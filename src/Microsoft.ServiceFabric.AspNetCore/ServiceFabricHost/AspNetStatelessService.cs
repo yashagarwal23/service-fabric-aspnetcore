@@ -17,40 +17,39 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
     using Microsoft.ServiceFabric.Services.Runtime;
 
-    public class WebStatefulService : StatefulService
+    public class AspNetStatelessService : StatelessService
     {
-        // private IHost host;
-        private List<ServiceReplicaListener> serviceListeners;
+        private IHost host;
+        private List<ServiceInstanceListener> serviceListeners;
 
-        public WebStatefulService(StatefulServiceContext serviceContext)
+        public AspNetStatelessService(StatelessServiceContext serviceContext)
             : base(serviceContext)
         {
         }
 
-        /*internal void ConfigureHost(IHost host)
+        internal void ConfigureHost(IHost host)
         {
             this.host = host;
-        }*/
+            this.host.StartAsync().Wait();
+        }
 
-        internal void ConfigureListeners(List<ServiceReplicaListener> serviceListeners)
+        internal void ConfigureListeners(List<ServiceInstanceListener> serviceListeners)
         {
             this.serviceListeners = serviceListeners;
         }
 
-        /*protected override async Task OnOpenAsync(ReplicaOpenMode openMode, CancellationToken cancellationToken)
-        {
-            await base.OnOpenAsync(openMode, cancellationToken);
-            await this.host.StartAsync(cancellationToken);
-        }
-
         protected override async Task OnCloseAsync(CancellationToken cancellationToken)
         {
-            await base.OnCloseAsync(cancellationToken);
             await this.host.StopAsync(cancellationToken);
             this.host.Dispose();
-        }*/
+        }
 
-        protected sealed override IEnumerable<ServiceReplicaListener> CreateServiceReplicaListeners()
+        protected override void OnAbort()
+        {
+            this.host.Dispose();
+        }
+
+        protected sealed override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
         {
             return this.serviceListeners;
         }

@@ -17,6 +17,9 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using Microsoft.Extensions.Hosting;
     using Microsoft.ServiceFabric.Data;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
+    using Microsoft.ServiceFabric.Services.Remoting;
+    using Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Runtime;
+    using Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Runtime;
     using Microsoft.ServiceFabric.Services.Runtime;
 
     public class StatefulServiceBuilder : ServiceBuilder
@@ -30,7 +33,6 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         public StatefulServiceBuilder(StatefulServiceContext serviceContext)
         {
             this.serviceContext = serviceContext;
-            this.ConfigureDefaults();
         }
 
         public StatefulServiceContext ServiceContext
@@ -49,6 +51,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             return this;
         }
 
+#if !NET461
         public StatefulServiceBuilder ConfigureWebHostDefaults(
             Action<IWebHostBuilder> configure,
             string listenerName = "",
@@ -59,7 +62,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 throw new ArgumentNullException(nameof(configure));
             }
 
-            ((HostBuilder)this).ConfigureWebHostDefaults(webBuilder =>
+            this.hostBuilder.ConfigureWebHostDefaults(webBuilder =>
             {
                 configure(webBuilder);
                 webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
@@ -86,7 +89,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 throw new ArgumentNullException(nameof(configure));
             }
 
-            ((HostBuilder)this).ConfigureWebHost(
+            this.hostBuilder.ConfigureWebHost(
                 webBuilder =>
                 {
                     configure(webBuilder);
@@ -121,7 +124,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 throw new ArgumentNullException(nameof(configureWebHostBuilder));
             }
 
-            ((HostBuilder)this).ConfigureWebHost(
+            this.hostBuilder.ConfigureWebHost(
                 webBuilder =>
                 {
                     configure(webBuilder);
@@ -140,10 +143,55 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             return this;
         }
 #endif
+#endif
+
+        public StatefulServiceBuilder ConfigureV2RemotingDefaults(bool listenOnSecondary = false)
+        {
+            if (this.serviceType == null)
+            {
+                throw new Exception();
+            }
+
+            if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
+            {
+                throw new Exception();
+            }
+
+            return this.ConfigureListener(
+                (context, provider) =>
+                {
+                    return new FabricTransportServiceRemotingListener(context, (IService)provider.GetRequiredService(this.serviceType));
+                },
+                "V2Listener",
+                listenOnSecondary);
+        }
+
+        public StatefulServiceBuilder ConfigureV2_1RemotingDefaults(bool listenOnSecondary = false)
+        {
+            if (this.serviceType == null)
+            {
+                throw new Exception();
+            }
+
+            if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
+            {
+                throw new Exception();
+            }
+
+            return this.ConfigureListener(
+                (context, provider) =>
+                {
+                    var settings = new FabricTransportRemotingListenerSettings();
+                    settings.UseWrappedMessage = true;
+                    return new FabricTransportServiceRemotingListener(context, (IService)provider.GetRequiredService(this.serviceType), settings);
+                },
+                "V2_1Listener",
+                listenOnSecondary);
+        }
 
         internal StatefulServiceBuilder UseServiceImplementation(Type serviceType)
         {
-            if (typeof(WebStatefulService).IsAssignableFrom(serviceType) == false)
+            if (typeof(AspNetStatefulService).IsAssignableFrom(serviceType) == false)
             {
                 throw new Exception();
             }
@@ -152,12 +200,12 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             return this;
         }
 
-        internal StatefulService Build(StatefulServiceContext serviceContext)
+        internal StatefulService BuildService()
         {
             this.ConfigureServices(services =>
             {
-                services.AddSingleton<ServiceContext>(serviceContext);
-                services.AddSingleton<StatefulServiceContext>(serviceContext);
+                services.AddSingleton<ServiceContext>(this.serviceContext);
+                services.AddSingleton<StatefulServiceContext>(this.serviceContext);
                 services.AddSingleton<IReliableStateManager>(provider => provider.GetRequiredService<StatefulService>().StateManager);
             });
 
@@ -167,34 +215,35 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     services.AddSingleton(this.serviceType);
                     services.AddSingleton(provider => (StatefulService)provider.GetRequiredService(this.serviceType));
-                    services.AddSingleton(provider => (WebStatefulService)provider.GetRequiredService(this.serviceType));
+                    services.AddSingleton(provider => (AspNetStatefulService)provider.GetRequiredService(this.serviceType));
                 });
             }
             else
             {
                 this.ConfigureServices(services =>
                 {
-                    services.AddSingleton(new WebStatefulService(serviceContext));
-                    services.AddSingleton(provider => (StatefulService)provider.GetRequiredService(typeof(WebStatelessService)));
+                    services.AddSingleton(new AspNetStatefulService(this.serviceContext));
+                    services.AddSingleton(provider => (StatefulService)provider.GetRequiredService(typeof(AspNetStatelessService)));
                 });
             }
 
-            var host = this.Build();
+            var host = this.hostBuilder.Build();
 
             var serviceReplicaListeners = new List<ServiceReplicaListener>();
             for (int i = 0; i < this.listenerDelegateList.Count; i++)
             {
-                var listener = this.listenerDelegateList[i].Invoke(serviceContext, host.Services);
+                var listener = this.listenerDelegateList[i].Invoke(this.serviceContext, host.Services);
                 serviceReplicaListeners.Add(new ServiceReplicaListener(
                     _ => listener,
                     this.listenerNameList[i],
                     this.listenOnSecondaryList[i]));
             }
 
-            var webStatefulService = host.Services.GetRequiredService<WebStatefulService>();
-            webStatefulService.ConfigureListeners(serviceReplicaListeners);
+            var aspNetStatefulService = host.Services.GetRequiredService<AspNetStatefulService>();
+            aspNetStatefulService.ConfigureHost(host);
+            aspNetStatefulService.ConfigureListeners(serviceReplicaListeners);
 
-            return webStatefulService;
+            return aspNetStatefulService;
         }
     }
 }

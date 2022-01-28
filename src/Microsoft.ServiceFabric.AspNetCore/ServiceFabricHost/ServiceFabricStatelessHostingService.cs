@@ -37,7 +37,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     StatelessServiceBuilder builder = new StatelessServiceBuilder(serviceContext);
                     this.configureBuilder(builder);
-                    return builder.Build(serviceContext);
+                    return builder.BuildService();
                 });
 
             return Task.CompletedTask;

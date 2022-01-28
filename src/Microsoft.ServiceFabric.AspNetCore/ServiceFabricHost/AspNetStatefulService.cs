@@ -17,40 +17,39 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
     using Microsoft.ServiceFabric.Services.Runtime;
 
-    public class WebStatelessService : StatelessService
+    public class AspNetStatefulService : StatefulService
     {
-        // private IHost host;
-        private List<ServiceInstanceListener> serviceListeners;
+        private IHost host;
+        private List<ServiceReplicaListener> serviceListeners;
 
-        public WebStatelessService(StatelessServiceContext serviceContext)
+        public AspNetStatefulService(StatefulServiceContext serviceContext)
             : base(serviceContext)
         {
         }
 
-        /* internal void ConfigureHost(IHost host)
+        internal void ConfigureHost(IHost host)
         {
             this.host = host;
-        }*/
+            this.host.StartAsync().Wait();
+        }
 
-        internal void ConfigureListeners(List<ServiceInstanceListener> serviceListeners)
+        internal void ConfigureListeners(List<ServiceReplicaListener> serviceListeners)
         {
             this.serviceListeners = serviceListeners;
         }
 
-        /*protected override async Task OnOpenAsync(CancellationToken cancellationToken)
-        {
-            await base.OnOpenAsync(cancellationToken);
-            await this.host.StartAsync(cancellationToken);
-        }
-
         protected override async Task OnCloseAsync(CancellationToken cancellationToken)
         {
-            await base.OnCloseAsync(cancellationToken);
             await this.host.StopAsync(cancellationToken);
             this.host.Dispose();
-        }*/
+        }
 
-        protected sealed override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
+        protected override void OnAbort()
+        {
+            this.host.Dispose();
+        }
+
+        protected sealed override IEnumerable<ServiceReplicaListener> CreateServiceReplicaListeners()
         {
             return this.serviceListeners;
         }

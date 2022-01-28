@@ -23,42 +23,36 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     public class WebCommunicationListener : ICommunicationListener
     {
         private readonly ServiceContext serviceContext;
-        private readonly IServiceProvider serviceProvider;
-        private IEnumerable<IHostedService> hostedServices;
+        private ServiceFabricServer server;
 
         public WebCommunicationListener(ServiceContext serviceContext, IServiceProvider serviceProvider)
         {
             this.serviceContext = serviceContext;
-            this.serviceProvider = serviceProvider;
-            this.hostedServices = serviceProvider.GetService<IEnumerable<IHostedService>>();
+            this.server = (ServiceFabricServer)serviceProvider.GetService<IServer>();
         }
 
         public void Abort()
         {
+            this.server.Dispose();
         }
 
         public async Task CloseAsync(CancellationToken cancellationToken)
         {
-            foreach (var hostedService in this.hostedServices)
-            {
-                await hostedService.StopAsync(cancellationToken);
-            }
+            await this.server.StopAsync(cancellationToken);
+            this.server.Dispose();
         }
 
         public async Task<string> OpenAsync(CancellationToken cancellationToken)
         {
-            foreach (var hostedService in this.hostedServices)
-            {
-                await hostedService.StartAsync(cancellationToken);
-            }
-
-            var server = this.serviceProvider.GetService<IServer>();
-            if (server == null)
+            if (this.server == null)
             {
                 throw new InvalidOperationException(SR.WebServerNotFound);
             }
 
-            var urls = server.Features.Get<IServerAddressesFeature>().Addresses;
+            this.server.Reset();
+            await this.server.StartAsync(cancellationToken);
+
+            var urls = this.server.Features.Get<IServerAddressesFeature>().Addresses;
             if (urls == null)
             {
                 throw new InvalidOperationException(SR.ErrorNoUrlFromAspNetCore);
