@@ -13,7 +13,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System.Collections.Generic;
     using Microsoft.AspNetCore.Http.Features;
 
-    internal class ServiceFabricServerFeatureCollection : IFeatureCollection
+    public sealed class ServiceFabricServerFeatureCollection : IFeatureCollection
     {
         private IFeatureCollection innerFeatures;
 

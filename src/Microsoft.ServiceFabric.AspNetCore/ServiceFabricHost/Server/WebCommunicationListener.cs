@@ -28,7 +28,13 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         public WebCommunicationListener(ServiceContext serviceContext, IServiceProvider serviceProvider)
         {
             this.serviceContext = serviceContext;
-            this.server = (ServiceFabricServer)serviceProvider.GetService<IServer>();
+            IServer server = serviceProvider.GetService<IServer>();
+            if (server == null || !(server is ServiceFabricServer))
+            {
+                throw new Exception("Use USeSFKestrel/UseSFHttpSys to configure server");
+            }
+
+            this.server = (server as ServiceFabricServer);
         }
 
         public void Abort()

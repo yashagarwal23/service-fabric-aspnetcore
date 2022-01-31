@@ -5,8 +5,9 @@
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 #pragma warning disable SA1600 // Elements should be documented
+#pragma warning disable SA1401 // Fields should be private
 
-namespace Microsoft.ServiceFabric.Services.Communication
+namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
     using System.Collections.Generic;
@@ -16,21 +17,22 @@ namespace Microsoft.ServiceFabric.Services.Communication
     using Microsoft.AspNetCore.Hosting.Server.Features;
     using Microsoft.AspNetCore.Http.Features;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.ServiceFabric.Services.Communication.AspNetCore;
 
-    public class ServiceFabricServer : IServer
+    internal abstract class ServiceFabricServer : IServer
     {
-        private IServer serverImpl;
-        private IServiceProvider serviceProvider;
-        private Type serverType;
+        protected IServer serverImpl;
+        protected IServiceProvider serviceProvider;
+        protected Type serverType;
 
-        private object httpApplicationObj;
-        private Type contextType;
+        protected object httpApplicationObj;
+        protected Type contextType;
 
-        private ICollection<string> addresses = new List<string>();
-        private ServiceFabricServerFeatureCollection features;
+        protected ICollection<string> addresses = new List<string>();
+        protected bool preferHostingUrls = false;
 
-        public ServiceFabricServer(IServer serverImpl, IServiceProvider serviceProvider)
+        protected ServiceFabricServerFeatureCollection features;
+
+        protected ServiceFabricServer(IServer serverImpl, IServiceProvider serviceProvider)
         {
             this.serverImpl = serverImpl;
             this.serviceProvider = serviceProvider;
@@ -47,24 +49,17 @@ namespace Microsoft.ServiceFabric.Services.Communication
             IServer newServer = (IServer)ActivatorUtilities.CreateInstance(this.serviceProvider, this.serverType);
             foreach (var feature in this.Features)
             {
-                newServer.Features.Set(feature);
-            }
-
-            if (this.addresses.Count > 0 && newServer.Features.Get<IServerAddressesFeature>().Addresses.Count == 0)
-            {
-                foreach (var address in this.addresses)
+                if (feature.Key != typeof(IServerAddressesFeature))
                 {
-                    newServer.Features.Get<IServerAddressesFeature>().Addresses.Add(address);
+                    typeof(IFeatureCollection)
+                    .GetMethod("Set")
+                    .MakeGenericMethod(feature.Key)
+                    .Invoke(newServer.Features, new object[] { feature.Value });
                 }
             }
 
             this.features.SetFeatures(newServer.Features);
             this.serverImpl = newServer;
-        }
-
-        public void Dispose()
-        {
-            this.serverImpl.Dispose();
         }
 
         public Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken cancellationToken)
@@ -77,25 +72,28 @@ namespace Microsoft.ServiceFabric.Services.Communication
                 this.addresses.Add(address);
             }
 
+            this.preferHostingUrls = this.serverImpl.Features.Get<IServerAddressesFeature>().PreferHostingUrls;
+
             this.serverImpl.Features.Get<IServerAddressesFeature>().Addresses.Clear();
 
             return Task.CompletedTask;
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
-            return this.serverImpl.StopAsync(cancellationToken);
+            await this.serverImpl.StopAsync(cancellationToken);
+            this.Dispose();
         }
 
-        internal Task StartAsync(CancellationToken cancellationToken)
+        public void Dispose()
         {
-            return (Task)this.serverType
-                .GetMethod("StartAsync")
-                .MakeGenericMethod(this.contextType)
-                .Invoke(this.serverImpl, new object[] { this.httpApplicationObj, cancellationToken });
+            this.serverImpl.Dispose();
         }
+
+        internal abstract Task StartAsync(CancellationToken cancellationToken);
     }
 }
 
 #pragma warning restore SA1600 // Elements should be documented
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning restore SA1401 // Fields should be private

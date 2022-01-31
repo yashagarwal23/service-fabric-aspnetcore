@@ -57,8 +57,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
             this.hostBuilder.ConfigureWebHostDefaults(webBuilder =>
             {
+                webBuilder.UseSFKestrel();
                 configure(webBuilder);
-                webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
             });
 
             this.ConfigureListener(
@@ -83,7 +83,6 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 webBuilder =>
                 {
                     configure(webBuilder);
-                    webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
                 });
 
             this.ConfigureListener(
@@ -116,7 +115,6 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 webBuilder =>
                 {
                     configure(webBuilder);
-                    webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
                 },
                 configureWebHostBuilder);
 
