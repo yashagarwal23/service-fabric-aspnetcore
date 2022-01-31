@@ -33,7 +33,7 @@ namespace Web1
                     sfbuilder.ConfigureWebHostDefaults(webBuilder =>
                     {
                         webBuilder.UseStartup<Startup>();
-                        webBuilder.UseKestrel(opt =>
+                        webBuilder.UseSFKestrel(opt =>
                         {
                             opt.Listen(IPAddress.IPv6Any, httpsEndpoint.Port, listenOptions =>
                             {
@@ -53,7 +53,7 @@ namespace Web1
                     {
                         webBuilder.UseUrls(listenUrl);
                         webBuilder.UseStartup<Startup>();
-                        webBuilder.UseKestrel();
+                        webBuilder.UseSFKestrel();
                     });
                 })
                 .RegisterStatefulService("Web3Type", sfbuilder =>
@@ -62,7 +62,7 @@ namespace Web1
                         webBuilder =>
                         {
                             webBuilder.UseStartup<Startup>();
-                            webBuilder.UseKestrel();
+                            webBuilder.UseSFKestrel();
                             webBuilder.UseUrls("http://+:0");
                         },
                         listenOnSecondary: true);
