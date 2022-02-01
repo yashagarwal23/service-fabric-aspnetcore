@@ -10,13 +10,13 @@ namespace Microsoft.ServiceFabric.Services.Communication
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.AspNetCore.Hosting.Server.Features;
     using Microsoft.AspNetCore.Http.Features;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.ServiceFabric.Services.Communication.AspNetCore;
 
     public class ServiceFabricServer : IServer
     {
@@ -28,43 +28,31 @@ namespace Microsoft.ServiceFabric.Services.Communication
         private Type contextType;
 
         private ICollection<string> addresses = new List<string>();
-        private ServiceFabricServerFeatureCollection features;
 
         public ServiceFabricServer(IServer serverImpl, IServiceProvider serviceProvider)
         {
             this.serverImpl = serverImpl;
             this.serviceProvider = serviceProvider;
             this.serverType = serverImpl.GetType();
-
-            this.features = new ServiceFabricServerFeatureCollection();
-            this.features.SetFeatures(this.serverImpl.Features);
         }
 
-        public IFeatureCollection Features { get => this.features; }
+        public IFeatureCollection Features { get => this.serverImpl.Features; }
 
         public void Reset()
         {
             IServer newServer = (IServer)ActivatorUtilities.CreateInstance(this.serviceProvider, this.serverType);
             foreach (var feature in this.Features)
             {
-                newServer.Features.Set(feature);
-            }
-
-            if (this.addresses.Count > 0 && newServer.Features.Get<IServerAddressesFeature>().Addresses.Count == 0)
-            {
-                foreach (var address in this.addresses)
+                if (feature.Key != typeof(IServerAddressesFeature))
                 {
-                    newServer.Features.Get<IServerAddressesFeature>().Addresses.Add(address);
+                    typeof(IFeatureCollection)
+                    .GetMethod("Set")
+                    .MakeGenericMethod(feature.Key)
+                    .Invoke(newServer.Features, new object[] { feature.Value });
                 }
             }
 
-            this.features.SetFeatures(newServer.Features);
             this.serverImpl = newServer;
-        }
-
-        public void Dispose()
-        {
-            this.serverImpl.Dispose();
         }
 
         public Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken cancellationToken)
@@ -72,27 +60,35 @@ namespace Microsoft.ServiceFabric.Services.Communication
             this.httpApplicationObj = application;
             this.contextType = typeof(TContext);
 
-            foreach (var address in this.serverImpl.Features.Get<IServerAddressesFeature>().Addresses)
-            {
-                this.addresses.Add(address);
-            }
+            this.addresses = this.serverImpl.Features.Get<IServerAddressesFeature>().Addresses.ToList();
 
             this.serverImpl.Features.Get<IServerAddressesFeature>().Addresses.Clear();
 
             return Task.CompletedTask;
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
-            return this.serverImpl.StopAsync(cancellationToken);
+            await this.serverImpl.StopAsync(cancellationToken);
+            this.Dispose();
         }
 
-        internal Task StartAsync(CancellationToken cancellationToken)
+        public void Dispose()
         {
+            this.serverImpl.Dispose();
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            foreach (var address in this.addresses)
+            {
+                this.Features.Get<IServerAddressesFeature>().Addresses.Add(address);
+            }
+
             return (Task)this.serverType
-                .GetMethod("StartAsync")
-                .MakeGenericMethod(this.contextType)
-                .Invoke(this.serverImpl, new object[] { this.httpApplicationObj, cancellationToken });
+               .GetMethod("StartAsync")
+               .MakeGenericMethod(this.contextType)
+               .Invoke(this.serverImpl, new object[] { this.httpApplicationObj, cancellationToken });
         }
     }
 }
