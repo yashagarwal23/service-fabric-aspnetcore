@@ -233,6 +233,12 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 });
             }
 
+            this.ConfigureServices(services =>
+            {
+                services.AddTransient<IStatefulServicePartition>(provider => provider.GetRequiredService<AspNetStatefulService>().GetPartition());
+                services.AddTransient<IServicePartition>(provider => provider.GetRequiredService<AspNetStatefulService>().GetPartition());
+            });
+
             this.ConfigureServices(services => services.AddTransient<IConfigureOptions<ServiceFabricHostOptions>, ServiceFabricHostOptionsSetup>());
 
             var host = this.hostBuilder.Build();

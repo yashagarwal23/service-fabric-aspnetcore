@@ -30,6 +30,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         {
         }
 
+        internal IStatelessServicePartition GetPartition() => this.Partition;
+
         internal void ConfigureHost(IHost host)
         {
             this.host = host;
