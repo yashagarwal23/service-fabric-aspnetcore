@@ -15,6 +15,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Options;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
     using Microsoft.ServiceFabric.Services.Remoting;
     using Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Runtime;
@@ -48,7 +49,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 #if !NET461
         public StatelessServiceBuilder ConfigureWebHostDefaults(
             Action<IWebHostBuilder> configure,
-            string listenerName = "")
+            string listenerName = "",
+            ServiceFabricIntegrationOptions serviceFabricIntegrationOptions = ServiceFabricIntegrationOptions.None)
         {
             if (configure is null)
             {
@@ -59,6 +61,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             {
                 configure(webBuilder);
                 webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                webBuilder.UseServiceFabricIntegration(serviceFabricIntegrationOptions);
             });
 
             this.ConfigureListener(
@@ -72,7 +75,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
         public StatelessServiceBuilder ConfigureWebHost(
             Action<IWebHostBuilder> configure,
-            string listenerName = "")
+            string listenerName = "",
+            ServiceFabricIntegrationOptions serviceFabricIntegrationOptions = ServiceFabricIntegrationOptions.None)
         {
             if (configure is null)
             {
@@ -84,6 +88,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     configure(webBuilder);
                     webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                    webBuilder.UseServiceFabricIntegration(serviceFabricIntegrationOptions);
                 });
 
             this.ConfigureListener(
@@ -100,7 +105,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         public StatelessServiceBuilder ConfigureWebHost(
             Action<IWebHostBuilder> configure,
             Action<WebHostBuilderOptions> configureWebHostBuilder,
-            string listenerName = "")
+            string listenerName = "",
+            ServiceFabricIntegrationOptions serviceFabricIntegrationOptions = ServiceFabricIntegrationOptions.None)
         {
             if (configure is null)
             {
@@ -117,6 +123,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     configure(webBuilder);
                     webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                    webBuilder.UseServiceFabricIntegration(serviceFabricIntegrationOptions);
                 },
                 configureWebHostBuilder);
 
@@ -210,6 +217,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     services.AddSingleton(provider => (StatelessService)provider.GetRequiredService(typeof(AspNetStatelessService)));
                 });
             }
+
+            this.ConfigureServices(services => services.AddTransient<IConfigureOptions<ServiceFabricHostOptions>, ServiceFabricHostOptionsSetup>());
 
             var host = this.hostBuilder.Build();
 

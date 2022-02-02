@@ -5,9 +5,10 @@
 namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
+    using Microsoft.AspNetCore.Hosting;
 
     /// <summary>
-    /// Integration options for <see cref="WebHostBuilderServiceFabricExtension.UseServiceFabricIntegration"/> method when used with Microsoft.AspNetCore.Hosting.IWebHostBuilder.
+    /// Integration options for <see cref="WebHostBuilderServiceFabricExtension.UseServiceFabricIntegration(IWebHostBuilder, AspNetCoreCommunicationListener, ServiceFabricIntegrationOptions)"/> method when used with Microsoft.AspNetCore.Hosting.IWebHostBuilder.
     /// </summary>
     [Flags]
     public enum ServiceFabricIntegrationOptions

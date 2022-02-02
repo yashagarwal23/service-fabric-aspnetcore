@@ -68,20 +68,23 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 throw new InvalidOperationException(SR.ErrorNoUrlFromAspNetCore);
             }
 
+            var urlSuffix = this.hostOptions.UrlSuffix;
             var publishAddress = this.serviceContext.PublishAddress;
 
             var completeUrls = urls.Select(url =>
             {
+                string completeUrl = url;
                 if (url.Contains("://+:"))
                 {
-                    return url.Replace("://+:", $"://{publishAddress}:");
+                    completeUrl = url.Replace("://+:", $"://{publishAddress}:");
                 }
                 else if (url.Contains("://[::]:"))
                 {
-                    return url.Replace("://[::]:", $"://{publishAddress}:");
+                    completeUrl = url.Replace("://[::]:", $"://{publishAddress}:");
                 }
 
-                return url;
+                completeUrl = completeUrl.TrimEnd(new[] { '/' }) + urlSuffix;
+                return completeUrl;
             });
 
             return string.Join(";", completeUrls);

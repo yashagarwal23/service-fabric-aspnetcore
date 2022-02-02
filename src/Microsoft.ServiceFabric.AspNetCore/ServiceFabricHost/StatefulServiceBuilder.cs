@@ -15,6 +15,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using Microsoft.AspNetCore.Hosting.Server;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Options;
     using Microsoft.ServiceFabric.Data;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
     using Microsoft.ServiceFabric.Services.Remoting;
@@ -55,7 +56,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         public StatefulServiceBuilder ConfigureWebHostDefaults(
             Action<IWebHostBuilder> configure,
             string listenerName = "",
-            bool listenOnSecondary = false)
+            bool listenOnSecondary = false,
+            ServiceFabricIntegrationOptions serviceFabricIntegrationOptions = ServiceFabricIntegrationOptions.None)
         {
             if (configure is null)
             {
@@ -66,6 +68,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             {
                 configure(webBuilder);
                 webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                webBuilder.UseServiceFabricIntegration(serviceFabricIntegrationOptions);
             });
 
             this.ConfigureListener(
@@ -82,7 +85,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
         public StatefulServiceBuilder ConfigureWebHost(
             Action<IWebHostBuilder> configure,
             string listenerName = "",
-            bool listenOnSecondary = false)
+            bool listenOnSecondary = false,
+            ServiceFabricIntegrationOptions serviceFabricIntegrationOptions = ServiceFabricIntegrationOptions.None)
         {
             if (configure is null)
             {
@@ -112,7 +116,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             Action<IWebHostBuilder> configure,
             Action<WebHostBuilderOptions> configureWebHostBuilder,
             string listenerName = "",
-            bool listenOnSecondary = false)
+            bool listenOnSecondary = false,
+            ServiceFabricIntegrationOptions serviceFabricIntegrationOptions = ServiceFabricIntegrationOptions.None)
         {
             if (configure is null)
             {
@@ -129,6 +134,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     configure(webBuilder);
                     webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                    webBuilder.UseServiceFabricIntegration(serviceFabricIntegrationOptions);
                 },
                 configureWebHostBuilder);
 
@@ -226,6 +232,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     services.AddSingleton(provider => (StatefulService)provider.GetRequiredService(typeof(AspNetStatelessService)));
                 });
             }
+
+            this.ConfigureServices(services => services.AddTransient<IConfigureOptions<ServiceFabricHostOptions>, ServiceFabricHostOptionsSetup>());
 
             var host = this.hostBuilder.Build();
 

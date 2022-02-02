@@ -11,7 +11,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     /// <summary>
     /// Class containing Service Fabric related extension methods for Microsoft.AspNetCore.Hosting.IWebHostBuilder.
     /// </summary>
-    public static class WebHostBuilderServiceFabricExtension
+    public static partial class WebHostBuilderServiceFabricExtension
     {
         private static readonly string SettingName = "UseServiceFabricIntegration";
 
