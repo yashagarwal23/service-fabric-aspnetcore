@@ -24,8 +24,7 @@ namespace Microsoft.ServiceFabric.Services.Communication
         private IServiceProvider serviceProvider;
         private Type serverType;
 
-        private object httpApplicationObj;
-        private Type contextType;
+        private Func<IServer, CancellationToken, Task> serverStartFunc;
 
         private ICollection<string> addresses = new List<string>();
 
@@ -45,10 +44,7 @@ namespace Microsoft.ServiceFabric.Services.Communication
             {
                 if (feature.Key != typeof(IServerAddressesFeature))
                 {
-                    typeof(IFeatureCollection)
-                    .GetMethod("Set")
-                    .MakeGenericMethod(feature.Key)
-                    .Invoke(newServer.Features, new object[] { feature.Value });
+                    this.serverImpl.Features[feature.Key] = feature.Value;
                 }
             }
 
@@ -57,8 +53,10 @@ namespace Microsoft.ServiceFabric.Services.Communication
 
         public Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken cancellationToken)
         {
-            this.httpApplicationObj = application;
-            this.contextType = typeof(TContext);
+            this.serverStartFunc = (server, token) =>
+            {
+                return server.StartAsync<TContext>(application, token);
+            };
 
             this.addresses = this.serverImpl.Features.Get<IServerAddressesFeature>().Addresses.ToList();
 
@@ -78,17 +76,14 @@ namespace Microsoft.ServiceFabric.Services.Communication
             this.serverImpl.Dispose();
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             foreach (var address in this.addresses)
             {
                 this.Features.Get<IServerAddressesFeature>().Addresses.Add(address);
             }
 
-            return (Task)this.serverType
-               .GetMethod("StartAsync")
-               .MakeGenericMethod(this.contextType)
-               .Invoke(this.serverImpl, new object[] { this.httpApplicationObj, cancellationToken });
+            await this.serverStartFunc(this.serverImpl, cancellationToken);
         }
     }
 }
