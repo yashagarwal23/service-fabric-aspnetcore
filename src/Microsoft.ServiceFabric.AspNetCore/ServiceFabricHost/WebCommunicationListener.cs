@@ -9,7 +9,6 @@
 namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
-    using System.Collections.Generic;
     using System.Fabric;
     using System.Linq;
     using System.Threading;
@@ -18,17 +17,22 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using Microsoft.AspNetCore.Hosting.Server.Features;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Options;
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
 
     public class WebCommunicationListener : ICommunicationListener
     {
         private readonly ServiceContext serviceContext;
+        private IHost host;
         private ServiceFabricServer server;
+        private ServiceFabricHostOptions hostOptions;
 
         public WebCommunicationListener(ServiceContext serviceContext, IServiceProvider serviceProvider)
         {
             this.serviceContext = serviceContext;
+            this.host = serviceProvider.GetRequiredService<IHost>();
             this.server = (ServiceFabricServer)serviceProvider.GetService<IServer>();
+            this.hostOptions = serviceProvider.GetService<IOptions<ServiceFabricHostOptions>>().Value;
         }
 
         public void Abort()
@@ -44,6 +48,12 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 
         public async Task<string> OpenAsync(CancellationToken cancellationToken)
         {
+            if (!this.hostOptions.HostRunning)
+            {
+                await this.host.StartAsync(cancellationToken);
+                this.hostOptions.NotifyStarted();
+            }
+
             if (this.server == null)
             {
                 throw new InvalidOperationException(SR.WebServerNotFound);
