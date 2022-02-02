@@ -54,7 +54,7 @@ namespace Web1
                         {
                             webBuilder.UseUrls(listenUrl);
                             webBuilder.UseStartup<Startup>();
-                            webBuilder.UseKestrel();
+                            webBuilder.UseHttpSys();
                         },
                         serviceFabricIntegrationOptions: ServiceFabricIntegrationOptions.UseUniqueServiceUrl);
                 })

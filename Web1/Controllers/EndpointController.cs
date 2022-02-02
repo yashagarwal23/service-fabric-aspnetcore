@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Fabric;
 using System.Linq;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -13,10 +14,12 @@ namespace Web1.Controllers
     public class EndpointController : ControllerBase
     {
         private IServer server;
+        private IServicePartition partition;
 
-        public EndpointController(IServer server)
+        public EndpointController(IServer server, IServicePartition partition)
         {
             this.server = server;
+            this.partition = partition;
         }
 
         [HttpGet]
@@ -24,6 +27,12 @@ namespace Web1.Controllers
         {
             List<string> urls = this.server.Features.Get<IServerAddressesFeature>().Addresses.ToList();
             return urls;
+        }
+
+        [HttpGet("partition")]
+        public ServicePartitionInformation GetPartition()
+        {
+            return this.partition.PartitionInfo;
         }
     }
 }
