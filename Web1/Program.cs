@@ -49,12 +49,14 @@ namespace Web1
                     var httpEndpoint = sfbuilder.ServiceContext.GetEndpointResourceDescription("Web2ServiceEndpoint");
                     var listenUrl = string.Format(CultureInfo.InvariantCulture, "{0}://+:{1}", httpEndpoint.Protocol.ToString().ToLowerInvariant(), httpEndpoint.Port);
 
-                    sfbuilder.ConfigureWebHostDefaults(webBuilder =>
-                    {
-                        webBuilder.UseUrls(listenUrl);
-                        webBuilder.UseStartup<Startup>();
-                        webBuilder.UseKestrel();
-                    });
+                    sfbuilder.ConfigureWebHostDefaults(
+                        webBuilder =>
+                        {
+                            webBuilder.UseUrls(listenUrl);
+                            webBuilder.UseStartup<Startup>();
+                            webBuilder.UseKestrel();
+                        },
+                        serviceFabricIntegrationOptions: ServiceFabricIntegrationOptions.UseUniqueServiceUrl);
                 })
                 .RegisterStatefulService("Web3Type", sfbuilder =>
                 {
@@ -65,7 +67,8 @@ namespace Web1
                             webBuilder.UseKestrel();
                             webBuilder.UseUrls("http://+:0");
                         },
-                        listenOnSecondary: true);
+                        listenOnSecondary: true,
+                        serviceFabricIntegrationOptions: ServiceFabricIntegrationOptions.UseUniqueServiceUrl);
                 })
                 .Build()
                 .Run();
