@@ -24,7 +24,8 @@ namespace Microsoft.ServiceFabric.Services.Communication
         private IServiceProvider serviceProvider;
         private Type serverType;
 
-        private Func<IServer, CancellationToken, Task> serverStartFunc;
+        // private Func<IServer, CancellationToken, Task> serverStartFunc;
+        private IHttpApplication<object> application;
 
         private ICollection<string> addresses = new List<string>();
 
@@ -53,10 +54,7 @@ namespace Microsoft.ServiceFabric.Services.Communication
 
         public Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken cancellationToken)
         {
-            this.serverStartFunc = (server, token) =>
-            {
-                return server.StartAsync<TContext>(application, token);
-            };
+            this.application = new ApplicationWrapper<TContext>(application);
 
             this.addresses = this.serverImpl.Features.Get<IServerAddressesFeature>().Addresses.ToList();
 
@@ -83,7 +81,24 @@ namespace Microsoft.ServiceFabric.Services.Communication
                 this.Features.Get<IServerAddressesFeature>().Addresses.Add(address);
             }
 
-            await this.serverStartFunc(this.serverImpl, cancellationToken);
+            // await this.serverStartFunc(this.serverImpl, cancellationToken);
+            await this.serverImpl.StartAsync(this.application, cancellationToken);
+        }
+
+        private class ApplicationWrapper<TContext> : IHttpApplication<object>
+        {
+            private readonly IHttpApplication<TContext> application;
+
+            public ApplicationWrapper(IHttpApplication<TContext> application)
+            {
+                this.application = application;
+            }
+
+            public void DisposeContext(object context, Exception exception) => this.application.DisposeContext((TContext)context, exception);
+
+            public Task ProcessRequestAsync(object context) => this.application.ProcessRequestAsync((TContext)context);
+
+            public object CreateContext(IFeatureCollection contextFeatures) => this.application.CreateContext(contextFeatures);
         }
     }
 }
