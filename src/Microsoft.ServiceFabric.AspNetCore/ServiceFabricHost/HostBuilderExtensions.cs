@@ -11,39 +11,12 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
 
     public static class HostBuilderExtensions
     {
-        private static Action<IServiceCollection, IServiceProvider, ServiceBuilder> globalServiceConfiguration =
-            (parentServices, parentProvider, builder) =>
-            {
-                builder.ConfigureServices(services =>
-                {
-                    var ignored = new HashSet<Type>(services.Select(i => i.ServiceType));
-                    ignored.Add(typeof(IHostedService));
-
-                    foreach (var descriptor in parentServices.Where(i => !ignored.Contains(i.ServiceType)))
-                    {
-                        switch (descriptor.Lifetime)
-                        {
-                            case ServiceLifetime.Scoped:
-                            case ServiceLifetime.Transient:
-                                services.Add(descriptor);
-                                break;
-                            case ServiceLifetime.Singleton:
-                                if (!descriptor.ServiceType.ContainsGenericParameters)
-                                {
-                                    services.AddSingleton(descriptor.ServiceType, _ => parentProvider.GetService(descriptor.ServiceType));
-                                }
-
-                                break;
-                        }
-                    }
-                });
-            };
-
         public static IHostBuilder RegisterStatelessService(this IHostBuilder hostBuilder, string serviceType, Action<StatelessServiceBuilder> configureBuilder)
         {
             return hostBuilder.ConfigureServices(services =>
@@ -53,7 +26,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     Action<StatelessServiceBuilder> builderConfiguration = (builder) =>
                     {
                         configureBuilder(builder);
-                        globalServiceConfiguration(services, provider, builder);
+                        ConfigureGlobalHostSettings(builder, services, provider);
                     };
 
                     return new ServiceFabricStatelessHostingService(serviceType, builderConfiguration);
@@ -72,7 +45,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     {
                         builder.UseServiceImplementation(typeof(TService));
                         configureBuilder(builder);
-                        globalServiceConfiguration(services, provider, builder);
+                        ConfigureGlobalHostSettings(builder, services, provider);
                     };
 
                     return new ServiceFabricStatelessHostingService(serviceType, builderConfiguration);
@@ -89,7 +62,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     Action<StatefulServiceBuilder> builderConfiguration = (builder) =>
                     {
                         configureBuilder(builder);
-                        globalServiceConfiguration(services, provider, builder);
+                        ConfigureGlobalHostSettings(builder, services, provider);
                     };
 
                     return new ServiceFabricStatefulHostingService(serviceType, builderConfiguration);
@@ -108,11 +81,45 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                     {
                         builder.UseServiceImplementation(typeof(TService));
                         configureBuilder(builder);
-                        globalServiceConfiguration(services, provider, builder);
+                        ConfigureGlobalHostSettings(builder, services, provider);
                     };
 
                     return new ServiceFabricStatefulHostingService(serviceType, builderConfiguration);
                 });
+            });
+        }
+
+        private static void ConfigureGlobalHostSettings(ServiceBuilder sfBuilder, IServiceCollection globalServices, IServiceProvider globalProvider)
+        {
+            // Configure global DI Services
+            sfBuilder.ConfigureServices(services =>
+            {
+                var servicesIgnored = new HashSet<Type>(services.Select(i => i.ServiceType));
+                servicesIgnored.Add(typeof(IHostedService));
+
+                foreach (var descriptor in globalServices.Where(i => !servicesIgnored.Contains(i.ServiceType)))
+                {
+                    switch (descriptor.Lifetime)
+                    {
+                        case ServiceLifetime.Scoped:
+                        case ServiceLifetime.Transient:
+                            services.Add(descriptor);
+                            break;
+                        case ServiceLifetime.Singleton:
+                            if (!descriptor.ServiceType.ContainsGenericParameters)
+                            {
+                                services.AddSingleton(descriptor.ServiceType, _ => globalProvider.GetService(descriptor.ServiceType));
+                            }
+
+                            break;
+                    }
+                }
+            });
+
+            // Configure global Configuration
+            sfBuilder.ConfigureHostConfiguration(config =>
+            {
+                config.AddConfiguration(globalProvider.GetRequiredService<IConfiguration>());
             });
         }
     }
