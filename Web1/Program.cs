@@ -42,7 +42,7 @@ namespace Web1
                             opt.Listen(IPAddress.IPv6Any, httpEndpoint.Port);
                         });
                     })
-                    .ConfigureV2RemotingDefaults();
+                    .ConfigureV2Remoting();
                 })
                 .RegisterStatelessService("Web2Type", sfbuilder =>
                 {
