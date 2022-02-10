@@ -10,12 +10,34 @@
 namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
+    using System.Collections.Generic;
+    using System.Fabric;
+    using System.Globalization;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Options;
 
     public static partial class WebHostBuilderServiceFabricExtension
     {
+        public static IWebHostBuilder UseEndpoints(this IWebHostBuilder hostBuilder, ServiceContext serviceContext, params string[] endpoints)
+        {
+            List<string> urls = new List<string>();
+            foreach (var endpoint in endpoints)
+            {
+                var endpointResourceDescription = serviceContext.GetEndpointResourceDescription(endpoint);
+                var listenUrl = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0}://+:{1}",
+                    endpointResourceDescription.Protocol.ToString().ToLowerInvariant(),
+                    endpointResourceDescription.Port);
+                urls.Add(listenUrl);
+            }
+
+            hostBuilder.UseUrls(string.Join(";", urls));
+
+            return hostBuilder;
+        }
+
         internal static IWebHostBuilder UseServiceFabricIntegration(this IWebHostBuilder hostBuilder, ServiceFabricIntegrationOptions serviceFabricIntegerationOptions)
         {
             if (hostBuilder == null)

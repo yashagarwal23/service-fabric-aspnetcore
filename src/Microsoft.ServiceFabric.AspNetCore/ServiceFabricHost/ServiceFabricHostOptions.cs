@@ -12,7 +12,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System.Fabric;
     using System.Globalization;
 
-    public class ServiceFabricHostOptions
+    internal class ServiceFabricHostOptions
     {
         private bool configuredToUseUniqueServiceUrl;
 

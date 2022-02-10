@@ -12,7 +12,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using System.Fabric;
     using Microsoft.Extensions.Options;
 
-    public class ServiceFabricHostOptionsSetup : IConfigureOptions<ServiceFabricHostOptions>
+    internal class ServiceFabricHostOptionsSetup : IConfigureOptions<ServiceFabricHostOptions>
     {
         private readonly ServiceContext serviceContext;
 
