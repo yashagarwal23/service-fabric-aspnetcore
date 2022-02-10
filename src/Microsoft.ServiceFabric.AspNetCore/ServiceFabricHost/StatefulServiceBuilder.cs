@@ -100,6 +100,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 {
                     configure(webBuilder);
                     webBuilder.ConfigureServices(services => services.Decorate<IServer, ServiceFabricServer>());
+                    webBuilder.UseServiceFabricIntegration(serviceFabricIntegrationOptions);
                 });
 
             this.ConfigureListener(
