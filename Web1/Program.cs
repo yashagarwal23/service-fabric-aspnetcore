@@ -52,7 +52,7 @@ namespace Web1
                     sfbuilder.ConfigureWebHostDefaults(
                         webBuilder =>
                         {
-                            webBuilder.UseUrls(listenUrl);
+                            webBuilder.UseEndpoints(sfbuilder.ServiceContext, "Web2ServiceEndpoint");
                             webBuilder.UseStartup<Startup>();
                             webBuilder.UseHttpSys();
                         },
