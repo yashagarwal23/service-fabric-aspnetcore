@@ -19,7 +19,9 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
     using Microsoft.ServiceFabric.Services.Remoting;
     using Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Runtime;
+    using Microsoft.ServiceFabric.Services.Remoting.V2;
     using Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Runtime;
+    using Microsoft.ServiceFabric.Services.Remoting.V2.Runtime;
     using Microsoft.ServiceFabric.Services.Runtime;
 
     public class StatelessServiceBuilder : ServiceBuilder
@@ -139,46 +141,95 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 #endif
 #endif
 
-        public StatelessServiceBuilder ConfigureV2RemotingDefaults()
+        public StatelessServiceBuilder ConfigureV2Remoting(
+            IServiceRemotingMessageHandler serviceRemotingMessageHandler = null,
+            FabricTransportRemotingListenerSettings remotingListenerSettings = null,
+            IServiceRemotingMessageSerializationProvider serializationProvider = null)
         {
-            if (this.serviceType == null)
-            {
-                throw new Exception();
-            }
+            string listenerName = "V2Listener";
 
-            if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
+            if (serviceRemotingMessageHandler == null)
             {
-                throw new Exception();
-            }
-
-            return this.ConfigureListener(
-                (context, provider) =>
+                if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
                 {
-                    return new FabricTransportServiceRemotingListener(context, (IService)provider.GetRequiredService(this.serviceType));
-                },
-                "V2Listener");
+                    throw new Exception();
+                }
+
+                this.ConfigureListener(
+                    (context, provider) =>
+                    {
+                        return new FabricTransportServiceRemotingListener(
+                            context,
+                            (IService)provider.GetRequiredService(this.serviceType),
+                            remotingListenerSettings,
+                            serializationProvider);
+                    },
+                    listenerName);
+            }
+            else
+            {
+                this.ConfigureListener(
+                    (context, provider) =>
+                    {
+                        return new FabricTransportServiceRemotingListener(
+                            context,
+                            serviceRemotingMessageHandler,
+                            remotingListenerSettings,
+                            serializationProvider);
+                    },
+                    listenerName);
+            }
+
+            return this;
         }
 
-        public StatelessServiceBuilder ConfigureV2_1RemotingDefaults()
+        public StatelessServiceBuilder ConfigureV2_1Remoting(
+            IServiceRemotingMessageHandler serviceRemotingMessageHandler = null,
+            FabricTransportRemotingListenerSettings remotingListenerSettings = null,
+            IServiceRemotingMessageSerializationProvider serializationProvider = null)
         {
-            if (this.serviceType == null)
+            string listenerName = "V2_1Listener";
+
+            if (remotingListenerSettings == null)
             {
-                throw new Exception();
+                remotingListenerSettings = new FabricTransportRemotingListenerSettings();
             }
 
-            if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
-            {
-                throw new Exception();
-            }
+            remotingListenerSettings.UseWrappedMessage = true;
 
-            return this.ConfigureListener(
-                (context, provider) =>
+            if (serviceRemotingMessageHandler == null)
+            {
+                if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
                 {
-                    var settings = new FabricTransportRemotingListenerSettings();
-                    settings.UseWrappedMessage = true;
-                    return new FabricTransportServiceRemotingListener(context, (IService)provider.GetRequiredService(this.serviceType), settings);
-                },
-                "V2_1Listener");
+                    throw new Exception();
+                }
+
+                this.ConfigureListener(
+                    (context, provider) =>
+                    {
+                        return new FabricTransportServiceRemotingListener(
+                            context,
+                            (IService)provider.GetRequiredService(this.serviceType),
+                            remotingListenerSettings,
+                            serializationProvider);
+                    },
+                    listenerName);
+            }
+            else
+            {
+                this.ConfigureListener(
+                    (context, provider) =>
+                    {
+                        return new FabricTransportServiceRemotingListener(
+                            context,
+                            serviceRemotingMessageHandler,
+                            remotingListenerSettings,
+                            serializationProvider);
+                    },
+                    listenerName);
+            }
+
+            return this;
         }
 
         internal StatelessServiceBuilder UseServiceImplementation(Type serviceType)

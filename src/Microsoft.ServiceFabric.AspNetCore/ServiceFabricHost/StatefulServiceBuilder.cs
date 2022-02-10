@@ -20,7 +20,9 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
     using Microsoft.ServiceFabric.Services.Communication.Runtime;
     using Microsoft.ServiceFabric.Services.Remoting;
     using Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Runtime;
+    using Microsoft.ServiceFabric.Services.Remoting.V2;
     using Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Runtime;
+    using Microsoft.ServiceFabric.Services.Remoting.V2.Runtime;
     using Microsoft.ServiceFabric.Services.Runtime;
 
     public class StatefulServiceBuilder : ServiceBuilder
@@ -151,48 +153,101 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 #endif
 #endif
 
-        public StatefulServiceBuilder ConfigureV2RemotingDefaults(bool listenOnSecondary = false)
+        public StatefulServiceBuilder ConfigureV2Remoting(
+            IServiceRemotingMessageHandler serviceRemotingMessageHandler = null,
+            FabricTransportRemotingListenerSettings remotingListenerSettings = null,
+            IServiceRemotingMessageSerializationProvider serializationProvider = null,
+            bool listenOnSecondary = false)
         {
-            if (this.serviceType == null)
-            {
-                throw new Exception();
-            }
+            string listenerName = "V2Listener";
 
-            if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
+            if (serviceRemotingMessageHandler == null)
             {
-                throw new Exception();
-            }
-
-            return this.ConfigureListener(
-                (context, provider) =>
+                if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
                 {
-                    return new FabricTransportServiceRemotingListener(context, (IService)provider.GetRequiredService(this.serviceType));
-                },
-                "V2Listener",
-                listenOnSecondary);
+                    throw new Exception();
+                }
+
+                this.ConfigureListener(
+                    (context, provider) =>
+                    {
+                        return new FabricTransportServiceRemotingListener(
+                            context,
+                            (IService)provider.GetRequiredService(this.serviceType),
+                            remotingListenerSettings,
+                            serializationProvider);
+                    },
+                    listenerName,
+                    listenOnSecondary);
+            }
+            else
+            {
+                this.ConfigureListener(
+                    (context, provider) =>
+                    {
+                        return new FabricTransportServiceRemotingListener(
+                            context,
+                            serviceRemotingMessageHandler,
+                            remotingListenerSettings,
+                            serializationProvider);
+                    },
+                    listenerName,
+                    listenOnSecondary);
+            }
+
+            return this;
         }
 
-        public StatefulServiceBuilder ConfigureV2_1RemotingDefaults(bool listenOnSecondary = false)
+        public StatefulServiceBuilder ConfigureV2_1Remoting(
+            IServiceRemotingMessageHandler serviceRemotingMessageHandler = null,
+            FabricTransportRemotingListenerSettings remotingListenerSettings = null,
+            IServiceRemotingMessageSerializationProvider serializationProvider = null,
+            bool listenOnSecondary = false)
         {
-            if (this.serviceType == null)
+            string listenerName = "V2_1Listener";
+
+            if (remotingListenerSettings == null)
             {
-                throw new Exception();
+                remotingListenerSettings = new FabricTransportRemotingListenerSettings();
             }
 
-            if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
-            {
-                throw new Exception();
-            }
+            remotingListenerSettings.UseWrappedMessage = true;
 
-            return this.ConfigureListener(
-                (context, provider) =>
+            if (serviceRemotingMessageHandler == null)
+            {
+                if (typeof(IService).IsAssignableFrom(this.serviceType) == false)
                 {
-                    var settings = new FabricTransportRemotingListenerSettings();
-                    settings.UseWrappedMessage = true;
-                    return new FabricTransportServiceRemotingListener(context, (IService)provider.GetRequiredService(this.serviceType), settings);
-                },
-                "V2_1Listener",
-                listenOnSecondary);
+                    throw new Exception();
+                }
+
+                this.ConfigureListener(
+                    (context, provider) =>
+                    {
+                        return new FabricTransportServiceRemotingListener(
+                            context,
+                            (IService)provider.GetRequiredService(this.serviceType),
+                            remotingListenerSettings,
+                            serializationProvider);
+                    },
+                    listenerName,
+                    listenOnSecondary);
+            }
+            else
+            {
+                this.ConfigureListener(
+                    (context, provider) =>
+                    {
+                        return new FabricTransportServiceRemotingListener(
+                            context,
+                            serviceRemotingMessageHandler,
+                            remotingListenerSettings,
+                            serializationProvider);
+                    },
+                    listenerName,
+                    listenOnSecondary);
+            }
+
+            return this;
         }
 
         internal StatefulServiceBuilder UseServiceImplementation(Type serviceType)
@@ -213,6 +268,7 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
                 services.AddSingleton<ServiceContext>(this.serviceContext);
                 services.AddSingleton<StatefulServiceContext>(this.serviceContext);
                 services.AddSingleton<IReliableStateManager>(provider => provider.GetRequiredService<StatefulService>().StateManager);
+                services.AddSingleton<ReliableStateManager>(provider => (ReliableStateManager)provider.GetRequiredService<StatefulService>().StateManager);
             });
 
             if (this.serviceType != null)
