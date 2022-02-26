@@ -45,7 +45,7 @@ namespace Microsoft.ServiceFabric.Services.Communication
             {
                 if (feature.Key != typeof(IServerAddressesFeature))
                 {
-                    this.serverImpl.Features[feature.Key] = feature.Value;
+                    newServer.Features[feature.Key] = feature.Value;
                 }
             }
 
