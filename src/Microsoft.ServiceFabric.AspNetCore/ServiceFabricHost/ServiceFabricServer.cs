@@ -40,6 +40,8 @@ namespace Microsoft.ServiceFabric.Services.Communication
 
         public void Reset()
         {
+            this.serverImpl.Dispose();
+
             IServer newServer = (IServer)ActivatorUtilities.CreateInstance(this.serviceProvider, this.serverType);
             foreach (var feature in this.Features)
             {
