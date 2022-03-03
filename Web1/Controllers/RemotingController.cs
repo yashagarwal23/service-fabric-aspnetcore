@@ -29,7 +29,7 @@ namespace Web1.Controllers
             int num = new Random().Next();
             var webServiceProxy = ServiceProxy.Create<ServiceRemotingInt>(new Uri("fabric:/TestApp/Web1"));
             await webServiceProxy.SetNum(num);
-            return $"num set : {num}";
+            return $"num: {num} set on Web1Type service";
         }
     }
 }

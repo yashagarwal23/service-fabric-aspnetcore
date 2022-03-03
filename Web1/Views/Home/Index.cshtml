@@ -1,14 +1,16 @@
 ﻿@using System.Fabric
+@using System.Diagnostics
 @inject PrintService service
 @inject ServiceContext serviceContext
 
 @{
     ViewData["Title"] = "Home Page";
+    ViewData["ServiceName"] = serviceContext.ServiceTypeName;
 }
 
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <p>Process Id: @Process.GetCurrentProcess().Id</p>
     <p>Service Name: @serviceContext.ServiceName </p>
     <p>Partition: @serviceContext.PartitionId </p>
     <p>InstanceId: @serviceContext.ReplicaOrInstanceId </p>
