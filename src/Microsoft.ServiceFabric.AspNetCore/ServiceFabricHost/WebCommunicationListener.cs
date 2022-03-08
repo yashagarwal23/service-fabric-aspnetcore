@@ -62,8 +62,8 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             this.server.Reset();
             await this.server.StartAsync(cancellationToken);
 
-            var urls = this.server.Features.Get<IServerAddressesFeature>().Addresses;
-            if (urls == null)
+            var url = this.server.Features.Get<IServerAddressesFeature>().Addresses.FirstOrDefault();
+            if (url == null)
             {
                 throw new InvalidOperationException(SR.ErrorNoUrlFromAspNetCore);
             }
@@ -71,23 +71,20 @@ namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
             var urlSuffix = this.hostOptions.UrlSuffix;
             var publishAddress = this.serviceContext.PublishAddress;
 
-            var completeUrls = urls.Select(url =>
+            if (url.Contains("://+:"))
             {
-                string completeUrl = url;
-                if (url.Contains("://+:"))
-                {
-                    completeUrl = url.Replace("://+:", $"://{publishAddress}:");
-                }
-                else if (url.Contains("://[::]:"))
-                {
-                    completeUrl = url.Replace("://[::]:", $"://{publishAddress}:");
-                }
+                url = url.Replace("://+:", $"://{publishAddress}:");
+            }
+            else if (url.Contains("://[::]:"))
+            {
+                url = url.Replace("://[::]:", $"://{publishAddress}:");
+            }
+            else if (url.Contains("://0.0.0.0:"))
+            {
+                url = url.Replace("://0.0.0.0:", $"://{publishAddress}:");
+            }
 
-                completeUrl = completeUrl.TrimEnd(new[] { '/' }) + urlSuffix;
-                return completeUrl;
-            });
-
-            return string.Join(";", completeUrls);
+            return url.TrimEnd(new[] { '/' }) + urlSuffix;
         }
     }
 }
