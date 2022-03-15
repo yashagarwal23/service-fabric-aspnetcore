@@ -6,7 +6,7 @@
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 #pragma warning disable SA1600 // Elements should be documented
 
-namespace Microsoft.ServiceFabric.Services.Communication
+namespace Microsoft.ServiceFabric.Services.Communication.AspNetCore
 {
     using System;
     using System.Collections.Generic;
@@ -24,7 +24,8 @@ namespace Microsoft.ServiceFabric.Services.Communication
         private IServiceProvider serviceProvider;
         private Type serverType;
 
-        // private Func<IServer, CancellationToken, Task> serverStartFunc;
+        private ServiceFabricServerFeatureCollection features;
+
         private IHttpApplication<object> application;
 
         private ICollection<string> addresses = new List<string>();
@@ -34,22 +35,20 @@ namespace Microsoft.ServiceFabric.Services.Communication
             this.serverImpl = serverImpl;
             this.serviceProvider = serviceProvider;
             this.serverType = serverImpl.GetType();
+
+            this.features = new ServiceFabricServerFeatureCollection();
+            this.features.ConfigureInternalFeatures(serverImpl.Features);
         }
 
-        public IFeatureCollection Features { get => this.serverImpl.Features; }
+        public IFeatureCollection Features { get => this.features; }
 
         public void Reset()
         {
             this.serverImpl.Dispose();
 
             IServer newServer = (IServer)ActivatorUtilities.CreateInstance(this.serviceProvider, this.serverType);
-            foreach (var feature in this.Features)
-            {
-                if (feature.Key != typeof(IServerAddressesFeature))
-                {
-                    newServer.Features[feature.Key] = feature.Value;
-                }
-            }
+
+            this.features.ConfigureInternalFeatures(newServer.Features);
 
             this.serverImpl = newServer;
         }
@@ -83,8 +82,9 @@ namespace Microsoft.ServiceFabric.Services.Communication
                 this.Features.Get<IServerAddressesFeature>().Addresses.Add(address);
             }
 
-            // await this.serverStartFunc(this.serverImpl, cancellationToken);
             await this.serverImpl.StartAsync(this.application, cancellationToken);
+
+            this.addresses = this.Features.Get<IServerAddressesFeature>().Addresses.ToList();
         }
 
         private class ApplicationWrapper<TContext> : IHttpApplication<object>
